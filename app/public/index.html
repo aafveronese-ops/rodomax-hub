@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rodomax HUB</title>
+  <meta name="description" content="Rodomax HUB — recebimento, classificação e análise de demandas com IA (projeto acadêmico)">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230b1f33'/%3E%3Cpath d='M8 21V11h7a4 4 0 0 1 0 8h-3l5 2' stroke='%23f2a541' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="marca">
+        <div class="marca-icone" aria-hidden="true">R</div>
+        <div><div class="marca-nome">RODOMAX <span>HUB</span></div><div class="marca-sub">Demandas · Logística · IA</div></div>
+      </div>
+      <nav id="menu" aria-label="Navegação principal"></nav>
+      <div class="sidebar-rodape">
+        <div id="status-integracao" class="status-integracao"><span class="ponto"></span><span>Verificando integração…</span></div>
+        <div class="aviso-academico">Protótipo acadêmico · Data Science e IA</div>
+      </div>
+    </aside>
+    <div class="principal">
+      <header class="topo">
+        <button class="botao-menu" id="botao-menu" aria-label="Abrir menu">☰</button>
+        <div><div class="topo-area" id="topo-area"></div><h1 id="topo-titulo">Rodomax HUB</h1></div>
+        <div class="topo-acoes" id="topo-acoes"></div>
+      </header>
+      <main id="conteudo" class="conteudo" tabindex="-1"></main>
+    </div>
+  </div>
+  <div id="gaveta" class="gaveta" aria-hidden="true">
+    <div class="gaveta-fundo" data-fechar></div>
+    <section class="gaveta-painel" role="dialog" aria-modal="true" aria-label="Detalhes da demanda">
+      <button class="gaveta-fechar" data-fechar aria-label="Fechar">✕</button>
+      <div id="gaveta-conteudo"></div>
+    </section>
+  </div>
+  <div id="tooltip" class="tooltip" role="tooltip"></div>
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+  <script src="js/app.js"></script>
+</body>
+</html>

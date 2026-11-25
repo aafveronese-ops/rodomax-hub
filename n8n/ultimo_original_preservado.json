@@ -1,0 +1,1609 @@
+{
+  "name": "ultimo",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "rodomax/whatsapp",
+        "options": {}
+      },
+      "id": "bce6ef57-f1b1-436e-b8ec-ca0ce4230c04",
+      "name": "Webhook WhatsApp",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -192,
+        640
+      ],
+      "webhookId": "aca6b41b-28c5-5787-87c8-be96c8e4852f"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "rodomax/email",
+        "options": {}
+      },
+      "id": "023d9fae-f33f-439e-88b8-d0aa20d4a29d",
+      "name": "Webhook E-mail",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -192,
+        800
+      ],
+      "webhookId": "79666184-d266-5ede-a6c2-079a8902a85f"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "rodomax/portal",
+        "options": {}
+      },
+      "id": "aa9b2c96-3195-4ccb-a1f6-58f4080b4db6",
+      "name": "Webhook Portal",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -192,
+        960
+      ],
+      "webhookId": "2865deff-9742-5659-a900-df236875d431"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "rodomax/arquivo-pdf",
+        "options": {}
+      },
+      "id": "9138ce12-7059-41ee-abd9-90629dfefd7c",
+      "name": "Webhook Arquivo PDF",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -192,
+        1120
+      ],
+      "webhookId": "c0b92af2-1286-5ab8-88d7-9599c83e0c46"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "id": "dcdeda69-c616-43f9-ac20-87c5d279fbfd",
+      "name": "Extrair Texto do PDF",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        80,
+        1120
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "rodomax/arquivo-txt-csv",
+        "options": {}
+      },
+      "id": "77ac7afc-7803-4846-a7a3-36645f0a2248",
+      "name": "Webhook Arquivo TXT/CSV",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -192,
+        1280
+      ],
+      "webhookId": "d78ea4b4-1491-5ac8-8915-613242633e0f"
+    },
+    {
+      "parameters": {},
+      "id": "af8d6c15-af05-4974-a1ec-f67060a6c096",
+      "name": "Teste Manual",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -192,
+        1440
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// =====================================================================\n// ETAPAS 2 e 3 | CONSOLIDAR E EXTRAIR\n// Recebe a entrada de qualquer canal (WhatsApp, E-mail, Portal, TXT/CSV, PDF)\n// e devolve UM registro por solicitação, sempre no mesmo formato:\n//   { canal, origem, recebido_em, campos_brutos, teste, cenario, crm_simulado }\n// Nada é descartado aqui: entradas vazias também seguem e serão reprovadas na validação.\n// =====================================================================\n\n// Em produção só um node de entrada executa por vez; descobrimos qual foi.\nconst NODES_DE_ENTRADA = {\n  'Webhook WhatsApp': 'whatsapp',\n  'Webhook E-mail': 'email',\n  'Webhook Portal': 'portal',\n  'Webhook Arquivo TXT/CSV': 'arquivo',\n  'Extrair Texto do PDF': 'arquivo_pdf',\n};\nconst executou = (nome) => { try { return $(nome).isExecuted; } catch (e) { return false; } };\nconst canalDaExecucao = () =>\n  Object.keys(NODES_DE_ENTRADA).filter(executou).map((n) => NODES_DE_ENTRADA[n])[0] || 'desconhecido';\n\nconst texto = (v) => (v === null || v === undefined ? '' : String(v));\n\n// Corpo do webhook como objeto (aceita JSON ou texto puro)\nfunction corpo(json) {\n  let b = json.body;\n  if (typeof b === 'string') { try { b = JSON.parse(b); } catch (e) { b = { mensagem: b }; } }\n  return b && typeof b === 'object' && !Array.isArray(b) ? b : {};\n}\n\n// \"Nome <email@x.com>\" -> { nome, email }\nfunction lerRemetente(from) {\n  const m = texto(from).match(/^\\s*\"?([^\"<]*?)\"?\\s*<([^>]+)>\\s*$/);\n  return m ? { nome: m[1].trim(), email: m[2].trim() } : { nome: '', email: texto(from).trim() };\n}\n\n// TXT/PDF: linhas \"Chave: valor\" viram campos; linhas sem chave viram a mensagem\nfunction lerChaveValor(conteudo) {\n  const campos = {}; const livres = [];\n  for (const linha of texto(conteudo).split(/\\r?\\n/)) {\n    const m = linha.match(/^\\s*([A-Za-zÀ-ÿ _-]{1,40}):\\s*(.*)$/);\n    if (m) campos[m[1].trim()] = m[2].trim();\n    else if (linha.trim()) livres.push(linha.trim());\n  }\n  if (livres.length) campos.mensagem = [campos.mensagem, ...livres].filter(Boolean).join(' ');\n  return campos;\n}\n\n// CSV: separador ; ou , (detectado no cabeçalho), aspas respeitadas\nfunction lerCsv(conteudo) {\n  const linhas = texto(conteudo).split(/\\r?\\n/).filter((l) => l.trim());\n  if (linhas.length < 2) return [];\n  const sep = (linhas[0].match(/;/g) || []).length >= (linhas[0].match(/,/g) || []).length ? ';' : ',';\n  const dividir = (linha) => {\n    const cols = []; let atual = ''; let aspas = false;\n    for (const ch of linha) {\n      if (ch === '\"') aspas = !aspas;\n      else if (ch === sep && !aspas) { cols.push(atual); atual = ''; }\n      else atual += ch;\n    }\n    cols.push(atual);\n    return cols.map((c) => c.trim());\n  };\n  const cab = dividir(linhas[0]);\n  return linhas.slice(1).map((l, i) => {\n    const v = dividir(l); const campos = {};\n    cab.forEach((c, k) => { campos[c] = v[k] ?? ''; });\n    return { linha: i + 2, campos };\n  });\n}\n\nconst agora = new Date().toISOString();\nconst saida = [];\n\nfor (const item of $input.all()) {\n  const j = item.json;\n  const b = corpo(j);\n  let canal = j._canal || canalDaExecucao();\n  let registros = [];   // [{ campos, origem }]\n\n  if (canal === 'whatsapp') {\n    const { from, ...resto } = b;                       // \"from\" é o número do remetente\n    registros = [{ campos: from ? { ...resto, celular: from } : resto, origem: {} }];\n  } else if (canal === 'email') {\n    const { from, subject, text, ...resto } = b;\n    const r = lerRemetente(from);\n    registros = [{ campos: { ...resto, nome: r.nome, email: r.email, assunto: subject, mensagem: text }, origem: {} }];\n  } else if (canal === 'portal') {\n    registros = [{ campos: { ...b }, origem: {} }];\n  } else if (canal === 'arquivo') {\n    const arquivo = texto(b.nome_arquivo);\n    const ext = texto(b.tipo_arquivo || arquivo.split('.').pop()).toLowerCase();\n    if (ext === 'csv') {\n      canal = 'arquivo_csv';\n      const linhas = lerCsv(b.conteudo);\n      registros = linhas.length\n        ? linhas.map((l) => ({ campos: l.campos, origem: { arquivo, linha: l.linha } }))\n        : [{ campos: {}, origem: { arquivo, aviso: 'CSV sem linhas de dados' } }];\n    } else {\n      canal = 'arquivo_txt';\n      registros = [{ campos: lerChaveValor(b.conteudo), origem: { arquivo } }];\n    }\n  } else if (canal === 'arquivo_pdf') {\n    let arquivo = texto(j.nome_arquivo);\n    try { arquivo = arquivo || $('Webhook Arquivo PDF').first().binary.data.fileName; } catch (e) { /* sem nome */ }\n    registros = [{ campos: lerChaveValor(j.text), origem: { arquivo: texto(arquivo) } }];   // \"text\" vem do node Extract From File\n  } else {\n    registros = [{ campos: b, origem: { aviso: 'canal não identificado' } }];\n  }\n\n  for (const r of registros) {\n    saida.push({ json: {\n      canal, origem: r.origem, recebido_em: agora, campos_brutos: r.campos,\n      teste: !!j._teste, cenario: j._cenario || null, crm_simulado: j._crm_simulado || null,\n    } });\n  }\n}\nreturn saida;\n"
+      },
+      "id": "20d890eb-d902-4f7d-8a7e-7cf2ecc2130a",
+      "name": "Consolidar e Extrair",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        1040
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// =====================================================================\n// ETAPA 4 | MAPEAR CAMPOS\n// Reconhece nomes equivalentes (celular = fone = telefone ...) e padroniza a ESTRUTURA\n// dos campos. Os valores ainda NÃO são alterados aqui.\n// Saída: dados (campos padronizados) + mapeamentos + campos_nao_mapeados + conflitos\n// =====================================================================\n\nconst SINONIMOS = {\n  nome: ['nome', 'nome_cliente', 'cliente', 'nome_completo', 'razao_social', 'solicitante', 'name'],\n  telefone: ['telefone', 'celular', 'fone', 'tel', 'whatsapp', 'phone'],\n  email: ['email', 'e_mail', 'mail'],\n  documento: ['documento', 'cpf', 'cnpj', 'cpf_cnpj', 'doc'],\n  data_pedido: ['data_pedido', 'data', 'data_solicitacao', 'data_do_pedido', 'dt_pedido'],\n  tipo: ['tipo', 'assunto', 'motivo', 'tipo_solicitacao', 'subject'],\n  observacao: ['observacao', 'obs', 'mensagem', 'descricao', 'texto', 'detalhes', 'message'],\n  nota_fiscal: ['nota_fiscal', 'nf', 'num_nf', 'nfe'],\n};\n\n// \"Nome Cliente\" -> \"nome_cliente\" ; \"Observação\" -> \"observacao\"\nconst chave = (k) => String(k).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '')\n  .toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');\n\nconst PARA_CANONICO = {};\nfor (const [canonico, apelidos] of Object.entries(SINONIMOS)) apelidos.forEach((a) => { PARA_CANONICO[a] = canonico; });\n\n// Dois valores \"dizem a mesma coisa\"? (telefone/documento/NF comparam só dígitos)\nfunction mesmoValor(campo, a, b) {\n  if (['telefone', 'documento', 'nota_fiscal'].includes(campo)) return a.replace(/\\D/g, '') === b.replace(/\\D/g, '');\n  return chave(a) === chave(b);\n}\n\nreturn $input.all().map((item) => {\n  const dados = {}; const mapeamentos = []; const naoMapeados = {}; const conflitos = [];\n\n  for (const [campoOriginal, bruto] of Object.entries(item.json.campos_brutos || {})) {\n    const destino = PARA_CANONICO[chave(campoOriginal)];\n    if (!destino || (bruto !== null && typeof bruto === 'object')) { naoMapeados[campoOriginal] = bruto; continue; }\n    mapeamentos.push({ origem: campoOriginal, destino, renomeado: campoOriginal !== destino });\n\n    const valor = String(bruto ?? '').trim();\n    if (valor === '') continue;                                    // vazio = ausente (não inventamos nada)\n    if (dados[destino] === undefined) dados[destino] = valor;\n    else if (!mesmoValor(destino, dados[destino], valor)) {\n      conflitos.push({ campo: destino, valores: [dados[destino], valor] });   // dois campos equivalentes com valores diferentes\n    }\n  }\n  return { json: { ...item.json, dados, mapeamentos, campos_nao_mapeados: naoMapeados, conflitos } };\n});\n"
+      },
+      "id": "72bd31c3-1074-4dce-b99d-c67427747b1a",
+      "name": "Mapear Campos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        768,
+        1040
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// =====================================================================\n// ETAPAS 5 e 6 | AUDITAR E VALIDAR\n// 1) Audita o lote: total, válidos, inválidos, duplicados, ausências por campo, por canal.\n// 2) Valida cada registro com critérios explícitos e define status_validacao:\n//      \"Válido\" | \"Inválido\" (campo ausente / valor inconsistente / conflito) | \"Duplicado\"\n// Cada reprovação carrega a lista \"motivos\" (nada é descartado em silêncio).\n// =====================================================================\n\nconst CAMPOS = ['nome', 'telefone', 'email', 'documento', 'data_pedido', 'tipo', 'observacao', 'nota_fiscal'];\n\nconst digitos = (s) => String(s ?? '').replace(/\\D/g, '');\nconst semAcento = (s) => String(s ?? '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().replace(/\\s+/g, ' ').trim();\n\n// Telefone brasileiro -> DDD+número (10 ou 11 dígitos) ou null. Remove +55 quando presente.\nfunction parseTelefone(valor) {\n  let d = digitos(valor);\n  if ((d.length === 12 || d.length === 13) && d.startsWith('55')) d = d.slice(2);\n  if (d.length === 10 && /^[1-9]{2}[2-9]/.test(d)) return d;   // fixo\n  if (d.length === 11 && /^[1-9]{2}9/.test(d)) return d;       // celular\n  return null;\n}\n\n// Data -> AAAA-MM-DD ou null. Aceita AAAA-MM-DD e DD/MM/AAAA (também com - ou .).\n// Ano com 2 dígitos é ambíguo: não adivinhamos.\nfunction parseData(valor) {\n  const s = String(valor ?? '').trim();\n  let a; let mes; let dia; let m;\n  if ((m = s.match(/^(\\d{4})-(\\d{2})-(\\d{2})(?:[T ].*)?$/))) { a = +m[1]; mes = +m[2]; dia = +m[3]; }\n  else if ((m = s.match(/^(\\d{1,2})[/.-](\\d{1,2})[/.-](\\d{4})$/))) { dia = +m[1]; mes = +m[2]; a = +m[3]; }\n  else return null;\n  const dt = new Date(Date.UTC(a, mes - 1, dia));\n  if (dt.getUTCFullYear() !== a || dt.getUTCMonth() !== mes - 1 || dt.getUTCDate() !== dia) return null;  // ex.: 31/02\n  return `${a}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;\n}\n\nconst emailValido = (e) => /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(e);\n\n// Hash FNV-1a (64 bits = 2 sementes) para gerar o identificador determinístico do registro\nfunction fnv(txt, seed) {\n  let h = seed;\n  for (const ch of txt) { h ^= ch.codePointAt(0); h = Math.imul(h, 0x01000193) >>> 0; }\n  return h.toString(16).padStart(8, '0');\n}\nconst hash = (txt) => fnv(txt, 0x811c9dc5) + fnv(txt, 0x9747b28c);\n\nconst itens = $input.all();\nconst vistos = new Map();   // chave_registro -> quantas vezes já apareceu neste lote\n\n// ---- Validação registro a registro ----\nconst resultados = itens.map((item, i) => {\n  const j = item.json; const d = j.dados || {};\n  const motivos = [];\n  const add = (codigo, campo, descricao) => motivos.push({ codigo, campo, descricao });\n\n  // Obrigatórios\n  if (!d.nome) add('AUSENTE', 'nome', 'Nome do cliente não informado');\n  if (!d.telefone && !d.email) add('AUSENTE', 'telefone/email', 'Nenhum contato informado (telefone ou e-mail)');\n  if (!d.tipo && !d.observacao) add('AUSENTE', 'tipo/observacao', 'Sem tipo nem observação para identificar a solicitação');\n  // Valores inconsistentes (só avalia o que foi informado)\n  if (d.telefone && !parseTelefone(d.telefone)) add('INCONSISTENTE', 'telefone', `Telefone fora do padrão brasileiro: \"${d.telefone}\"`);\n  if (d.email && !emailValido(d.email)) add('INCONSISTENTE', 'email', `E-mail inválido: \"${d.email}\"`);\n  if (d.data_pedido && !parseData(d.data_pedido)) add('INCONSISTENTE', 'data_pedido', `Data inválida ou ambígua: \"${d.data_pedido}\"`);\n  if (d.documento && ![11, 14].includes(digitos(d.documento).length)) add('INCONSISTENTE', 'documento', `CPF/CNPJ com quantidade de dígitos inválida: \"${d.documento}\"`);\n  for (const c of j.conflitos || []) add('CONFLITO', c.campo, `Campos equivalentes com valores diferentes: ${c.valores.map((v) => `\"${v}\"`).join(' x ')}`);\n\n  // Duplicidade: mesmo conteúdo (após padronizar) já visto neste lote\n  const base = [semAcento(d.nome), parseTelefone(d.telefone) || digitos(d.telefone) || semAcento(d.email),\n    parseData(d.data_pedido) || '', semAcento(`${d.tipo || ''} ${d.observacao || ''}`)].join('|');\n  const chave = 'rdx-' + (base.replace(/\\|/g, '') === ''\n    ? hash(`${j.canal}|${JSON.stringify(j.origem)}|${i}`)     // registro sem conteúdo: chave própria (não vira \"duplicado\")\n    : hash(base));\n  const ocorrencia = (vistos.get(chave) || 0) + 1;\n  vistos.set(chave, ocorrencia);\n  if (ocorrencia > 1) add('DUPLICADO', 'registro', `Mesmo conteúdo já recebido neste lote (ocorrência ${ocorrencia})`);\n\n  const reprovadoPorDado = motivos.some((m) => m.codigo !== 'DUPLICADO');\n  const status = reprovadoPorDado ? 'Inválido' : ocorrencia > 1 ? 'Duplicado' : 'Válido';\n  const preenchidos = CAMPOS.filter((c) => d[c]).length;\n\n  return { j, motivos, status, chave, ocorrencia, preenchidos };\n});\n\n// ---- Auditoria estatística do lote ----\nconst lote = { total: resultados.length, validos: 0, invalidos: 0, duplicados: 0, por_canal: {}, ausencias_por_campo: {}, completude_media_pct: 0 };\nlet somaCompletude = 0;\nfor (const r of resultados) {\n  if (r.status === 'Válido') lote.validos++; else if (r.status === 'Duplicado') lote.duplicados++; else lote.invalidos++;\n  lote.por_canal[r.j.canal] = (lote.por_canal[r.j.canal] || 0) + 1;\n  CAMPOS.filter((c) => !(r.j.dados || {})[c]).forEach((c) => { lote.ausencias_por_campo[c] = (lote.ausencias_por_campo[c] || 0) + 1; });\n  somaCompletude += (r.preenchidos / CAMPOS.length) * 100;\n}\nlote.completude_media_pct = lote.total ? Math.round(somaCompletude / lote.total) : 0;\n\nreturn resultados.map((r) => ({ json: {\n  ...r.j,\n  chave_registro: r.chave,\n  chave_pendencia: r.ocorrencia > 1 ? `${r.chave}-dup${r.ocorrencia}` : r.chave,   // duplicado não sobrescreve o original\n  status_validacao: r.status,\n  motivos: r.motivos,\n  motivos_resumo: r.motivos.map((m) => `${m.campo}: ${m.descricao}`).join('; '),\n  dados_originais_json: JSON.stringify(r.j.campos_brutos || {}),\n  auditoria: { registro: { campos_preenchidos: r.preenchidos, campos_total: CAMPOS.length, completude_pct: Math.round((r.preenchidos / CAMPOS.length) * 100) }, lote },\n} }));\n"
+      },
+      "id": "ccba6220-d1f2-4912-85f2-f6d2484e691c",
+      "name": "Auditar e Validar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1008,
+        1040
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "726b775e-9bac-5dae-a962-1f78b293dc13",
+              "leftValue": "={{ $json.status_validacao }}",
+              "rightValue": "Válido",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "3d912342-0b56-4b58-a5b9-d60c3830ab66",
+      "name": "Registro Válido?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1344,
+        1040
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "schema": {
+          "__rl": true,
+          "value": "public",
+          "mode": "name"
+        },
+        "table": {
+          "__rl": true,
+          "value": "hub_pendencias",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "chave_registro": "={{ $json.chave_pendencia }}",
+            "canal_origem": "={{ $json.canal }}",
+            "recebido_em": "={{ $json.recebido_em }}",
+            "status_validacao": "={{ $json.status_validacao }}",
+            "motivos": "={{ $json.motivos_resumo }}",
+            "dados_originais": "={{ $json.dados_originais_json }}",
+            "ambiente": "={{ $json.teste ? 'teste' : 'producao' }}"
+          },
+          "matchingColumns": [
+            "chave_registro"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "chave_registro",
+              "displayName": "chave_registro",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "canal_origem",
+              "displayName": "canal_origem",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "recebido_em",
+              "displayName": "recebido_em",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "ambiente",
+              "displayName": "ambiente",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "status_validacao",
+              "displayName": "status_validacao",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "motivos",
+              "displayName": "motivos",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "dados_originais",
+              "displayName": "dados_originais",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "status_revisao",
+              "displayName": "status_revisao",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false,
+              "removed": true
+            },
+            {
+              "id": "criado_em",
+              "displayName": "criado_em",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false,
+              "removed": true
+            },
+            {
+              "id": "atualizado_em",
+              "displayName": "atualizado_em",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "9e545e3a-e1e6-491d-80a6-195d044f572d",
+      "name": "Gravar Pendência (PostgreSQL)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1568,
+        1280
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "xRB358Nv1hfm25RQ",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// =====================================================================\n// ETAPAS 7 e 8 | NORMALIZAR DADOS  (só registros aprovados chegam aqui)\n// 1) Remove campos desnecessários: tudo que não pertence ao modelo do HUB.\n// 2) Padroniza valores de forma conservadora (só altera quando há segurança).\n//    Campo ausente continua null: nada é inventado.\n// =====================================================================\n\nconst PARTICULAS = new Set(['da', 'de', 'do', 'das', 'dos', 'e']);\nconst limpar = (s) => String(s ?? '').replace(/\\s+/g, ' ').trim();\n\n// Só ajusta a caixa se o nome veio TODO em maiúsculas ou TODO em minúsculas.\n// Capitalização mista (ex.: \"McDonald\") é preservada.\nfunction normalizarNome(nome) {\n  const n = limpar(nome);\n  if (n !== n.toUpperCase() && n !== n.toLowerCase()) return n;\n  return n.toLowerCase().split(' ')\n    .map((p, i) => (i > 0 && PARTICULAS.has(p) ? p : p.charAt(0).toUpperCase() + p.slice(1))).join(' ');\n}\n\n// Telefone -> só dígitos, DDD + número, sem +55 (a validação anterior já garantiu o formato)\nfunction normalizarTelefone(v) {\n  let d = String(v).replace(/\\D/g, '');\n  if ((d.length === 12 || d.length === 13) && d.startsWith('55')) d = d.slice(2);\n  return d;\n}\n\n// Data -> AAAA-MM-DD (a validação anterior já garantiu que é uma data real)\nfunction normalizarData(v) {\n  const s = String(v).trim();\n  let m = s.match(/^(\\d{4})-(\\d{2})-(\\d{2})/);\n  if (m) return `${m[1]}-${m[2]}-${m[3]}`;\n  m = s.match(/^(\\d{1,2})[/.-](\\d{1,2})[/.-](\\d{4})$/);\n  return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;\n}\n\nconst emBranco = (v) => (v === undefined || v === null || v === '' ? null : v);\n\nreturn $input.all().map((item) => {\n  const j = item.json; const d = j.dados || {};\n  const antes = {};\n  const depois = {\n    nome: emBranco(d.nome && normalizarNome(d.nome)),\n    telefone: emBranco(d.telefone && normalizarTelefone(d.telefone)),\n    email: emBranco(d.email && limpar(d.email).toLowerCase()),\n    documento: emBranco(d.documento && d.documento.replace(/\\D/g, '')),\n    data_pedido: emBranco(d.data_pedido && normalizarData(d.data_pedido)),\n    tipo: emBranco(d.tipo && limpar(d.tipo)),\n    observacao: emBranco(d.observacao && limpar(d.observacao)),\n    nota_fiscal: emBranco(d.nota_fiscal && limpar(d.nota_fiscal)),\n  };\n  // Registro do que mudou (útil para a apresentação e para auditoria)\n  const alteracoes = Object.keys(depois)\n    .filter((c) => d[c] !== undefined && d[c] !== depois[c])\n    .map((c) => ({ campo: c, de: d[c], para: depois[c] }));\n\n  return { json: {\n    chave_registro: j.chave_registro,\n    canal_origem: j.canal,\n    recebido_em: j.recebido_em,\n    ambiente: j.teste ? 'teste' : 'producao',\n    ...depois,\n    status_validacao: j.status_validacao,\n    campos_removidos: Object.keys(j.campos_nao_mapeados || {}),   // campos recebidos que não fazem parte do modelo do HUB\n    alteracoes,\n    cenario: j.cenario,\n    crm_simulado: j.crm_simulado,\n  } };\n});\n"
+      },
+      "id": "8d57eac9-cb03-4811-bc19-53b3761b90b7",
+      "name": "Normalizar Dados",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        960
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// =====================================================================\n// ETAPA 9 | CLASSIFICAR POR REGRAS\n// Classificação por PALAVRAS-CHAVE (não é IA). Procura termos no tipo + observação\n// (sem acento, sem diferenciar maiúsculas) e escolhe a regra com mais termos encontrados.\n// Empate: vale a ordem da lista. Sem nenhum termo: \"Não identificada\" -> setor \"Triagem\".\n// =====================================================================\n\nconst REGRAS = [\n  { categoria: 'Atraso na entrega',        setor: 'Logística',      termos: ['atras', 'onde esta', 'rastre', 'previsao de entrega', 'nao chegou', 'demora'] },\n  { categoria: 'Avaria ou extravio',       setor: 'Operacional',    termos: ['avaria', 'danific', 'extravi', 'sinistro', 'ocorrencia', 'quebrad'] },\n  { categoria: 'Coleta e agendamento',     setor: 'Operacional',    termos: ['coleta', 'agendar', 'agendamento', 'retirada'] },\n  { categoria: 'Cotação de frete',         setor: 'Comercial',      termos: ['cotacao', 'orcamento', 'proposta', 'frete'] },\n  { categoria: 'Cobrança e boletos',       setor: 'Financeiro',     termos: ['boleto', 'fatura', 'segunda via', 'pagamento', 'cobranca', 'vencimento'] },\n  { categoria: 'Reclamação e suporte',     setor: 'Atendimento',    termos: ['reclam', 'insatisf', 'duvida', 'atendimento', 'suporte', 'ajuda'] },\n  { categoria: 'Cadastro e documentos',    setor: 'Administrativo', termos: ['cadastro', 'contrato', 'documentacao', 'certidao', 'atualizar dados'] },\n];\n\nconst semAcento = (s) => String(s ?? '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();\n// o termo precisa começar numa palavra (\"atras\" casa com \"atrasada\", mas \"frete\" não casa dentro de \"refrete\")\nconst contem = (txt, termo) => new RegExp('(^|[^a-z0-9])' + termo).test(txt);\n\nreturn $input.all().map((item) => {\n  const j = item.json;\n  const txt = semAcento(`${j.tipo || ''} ${j.observacao || ''}`);\n\n  let melhor = null;\n  for (const regra of REGRAS) {\n    const achados = regra.termos.filter((t) => contem(txt, t));\n    if (achados.length && (!melhor || achados.length > melhor.achados.length)) melhor = { regra, achados };\n  }\n  return { json: {\n    ...j,\n    categoria: melhor ? melhor.regra.categoria : 'Não identificada',\n    setor_responsavel: melhor ? melhor.regra.setor : 'Triagem',\n    classificacao_metodo: 'regras_palavras_chave',\n    regra_classificacao: melhor ? `termos: ${melhor.achados.join(', ')}` : 'nenhum termo encontrado',\n  } };\n});\n"
+      },
+      "id": "287a93ac-71ab-490b-b318-a90cb243ebcf",
+      "name": "Classificar por Regras",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1840,
+        960
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://CONFIGURAR-URL-DO-CRM.invalid/clientes",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "documento",
+              "value": "={{ $json.documento }}"
+            },
+            {
+              "name": "telefone",
+              "value": "={{ $json.telefone }}"
+            },
+            {
+              "name": "email",
+              "value": "={{ $json.email }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "7433327f-98f9-429f-bb67-57561318b7f4",
+      "name": "Consultar CRM (GET) - PENDENTE DE CONFIGURAÇÃO",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2176,
+        960
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// =====================================================================\n// ETAPAS 11 e 12 | INTEGRAR CRM E UNIFICAR\n// Junta a resposta do CRM (node anterior) com o registro classificado e monta o registro final do HUB.\n//  - CRM respondeu com cadastro  -> crm_status \"encontrado\" (fonte crm_real)\n//  - CRM respondeu sem cadastro  -> \"nao_encontrado\"\n//  - CRM indisponível/não configurado -> \"indisponivel\"; se o item de TESTE trouxer dados\n//    simulados, eles são usados e marcados \"simulado_teste\" (nunca passam por dados reais).\n// Campos vazios do registro podem ser preenchidos pelo CRM; campos já preenchidos nunca são sobrescritos.\n// =====================================================================\n\nconst registros = $('Classificar por Regras').all();   // registros antes do CRM (mesma ordem)\nconst respostas = $input.all();                        // respostas do HTTP Request\n\n// Agrupa as respostas pelo registro de origem (uma consulta pode devolver 0, 1 ou vários itens)\nconst porRegistro = new Map();\nrespostas.forEach((r, i) => {\n  const idx = r.pairedItem && r.pairedItem.item !== undefined ? r.pairedItem.item : i;\n  if (!porRegistro.has(idx)) porRegistro.set(idx, []);\n  porRegistro.get(idx).push(r.json || {});\n});\n\nconst digitos = (s) => String(s ?? '').replace(/\\D/g, '');\n\nreturn registros.map((item, i) => {\n  const j = item.json;\n  const grupo = porRegistro.get(i) || [];\n  const erro = grupo.find((g) => g.error);\n  const ok = grupo.filter((g) => !g.error && Object.keys(g).length > 0);\n\n  let crm = null; let status = 'indisponivel'; let fonte = null; let detalhe = null;\n\n  if (ok.length) {                                       // resposta real do CRM\n    const reg = ok[0].registro || ok[0];\n    fonte = 'crm_real';\n    if (reg.id !== undefined || reg.codigo !== undefined) { crm = reg; status = 'encontrado'; } else status = 'nao_encontrado';\n  } else if (j.crm_simulado) {                           // SOMENTE testes: dados simulados\n    fonte = 'simulado_teste';\n    if (j.crm_simulado.encontrado) { crm = j.crm_simulado.registro; status = 'simulado_teste'; } else status = 'nao_encontrado';\n  } else {\n    detalhe = erro ? String(erro.error.message || erro.error) : 'CRM sem resposta';\n  }\n\n  // Preenche apenas o que está vazio\n  const preenchidos = [];\n  const final = { nome: j.nome, email: j.email, documento: j.documento };\n  if (crm) {\n    const nomeCrm = crm.nome || crm.razao_social;\n    if (!final.nome && nomeCrm) { final.nome = nomeCrm; preenchidos.push('nome'); }\n    if (!final.email && crm.email) { final.email = String(crm.email).toLowerCase(); preenchidos.push('email'); }\n    if (!final.documento && (crm.documento || crm.cnpj)) { final.documento = digitos(crm.documento || crm.cnpj); preenchidos.push('documento'); }\n  }\n\n  // Registro unificado = colunas da tabela hub_registros\n  return { json: {\n    chave_registro: j.chave_registro,\n    canal_origem: j.canal_origem,\n    recebido_em: j.recebido_em,\n    ambiente: j.ambiente,\n    nome: final.nome,\n    telefone: j.telefone,\n    email: final.email,\n    documento: final.documento,\n    data_pedido: j.data_pedido,\n    tipo: j.tipo,\n    observacao: j.observacao,\n    nota_fiscal: j.nota_fiscal,\n    categoria: j.categoria,\n    setor_responsavel: j.setor_responsavel,\n    regra_classificacao: j.regra_classificacao,\n    status_validacao: j.status_validacao,\n    crm_status: status,\n    crm_fonte: fonte,\n    crm_id: crm && (crm.id ?? crm.codigo) !== undefined ? String(crm.id ?? crm.codigo) : null,\n    crm_nome: crm ? (crm.nome || crm.razao_social || null) : null,\n    crm_detalhe: detalhe,\n    campos_preenchidos_pelo_crm: preenchidos,\n    cenario: j.cenario,\n  } };\n});\n"
+      },
+      "id": "deddb76d-f49d-4de6-b81b-f25765c24433",
+      "name": "Integrar CRM e Unificar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2432,
+        960
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "schema": {
+          "__rl": true,
+          "value": "public",
+          "mode": "name"
+        },
+        "table": {
+          "__rl": true,
+          "value": "hub_registros",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "chave_registro": "={{ $json.chave_registro }}",
+            "canal_origem": "={{ $json.canal_origem }}",
+            "recebido_em": "={{ $json.recebido_em }}",
+            "ambiente": "={{ $json.ambiente }}",
+            "nome": "={{ $json.nome }}",
+            "telefone": "={{ $json.telefone }}",
+            "email": "={{ $json.email }}",
+            "documento": "={{ $json.documento }}",
+            "data_pedido": "={{ $json.data_pedido }}",
+            "tipo": "={{ $json.tipo }}",
+            "observacao": "={{ $json.observacao }}",
+            "nota_fiscal": "={{ $json.nota_fiscal }}",
+            "categoria": "={{ $json.categoria }}",
+            "setor_responsavel": "={{ $json.setor_responsavel }}",
+            "regra_classificacao": "={{ $json.regra_classificacao }}",
+            "status_validacao": "={{ $json.status_validacao }}",
+            "crm_status": "={{ $json.crm_status }}",
+            "crm_fonte": "={{ $json.crm_fonte }}",
+            "crm_id": "={{ $json.crm_id }}",
+            "crm_nome": "={{ $json.crm_nome }}"
+          },
+          "matchingColumns": [
+            "chave_registro"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "chave_registro",
+              "displayName": "chave_registro",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "canal_origem",
+              "displayName": "canal_origem",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "recebido_em",
+              "displayName": "recebido_em",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "ambiente",
+              "displayName": "ambiente",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "nome",
+              "displayName": "nome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "telefone",
+              "displayName": "telefone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "documento",
+              "displayName": "documento",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "data_pedido",
+              "displayName": "data_pedido",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "tipo",
+              "displayName": "tipo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "observacao",
+              "displayName": "observacao",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "nota_fiscal",
+              "displayName": "nota_fiscal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "categoria",
+              "displayName": "categoria",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "setor_responsavel",
+              "displayName": "setor_responsavel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "regra_classificacao",
+              "displayName": "regra_classificacao",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "status_validacao",
+              "displayName": "status_validacao",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "crm_status",
+              "displayName": "crm_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "crm_fonte",
+              "displayName": "crm_fonte",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "crm_id",
+              "displayName": "crm_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "crm_nome",
+              "displayName": "crm_nome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "criado_em",
+              "displayName": "criado_em",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false,
+              "removed": true
+            },
+            {
+              "id": "atualizado_em",
+              "displayName": "atualizado_em",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "f0315de0-d388-43ab-a4e7-799723cd34f2",
+      "name": "Gravar no HUB (PostgreSQL)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        2752,
+        960
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "xRB358Nv1hfm25RQ",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "860a0826-fcc7-58ca-9700-120954ec05f4",
+                    "leftValue": "={{ $json.setor_responsavel }}",
+                    "rightValue": "Operacional",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "Operacional"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "50e96f55-4d00-598d-b05b-5b9f264bd6ac",
+                    "leftValue": "={{ $json.setor_responsavel }}",
+                    "rightValue": "Logística",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "Logística"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "e2b97ebc-9647-5d15-85ec-a8069a817e08",
+                    "leftValue": "={{ $json.setor_responsavel }}",
+                    "rightValue": "Comercial",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "Comercial"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "b867c5b2-1038-5ccb-a04c-4e3f327ea653",
+                    "leftValue": "={{ $json.setor_responsavel }}",
+                    "rightValue": "Financeiro",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "Financeiro"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "fa277fd0-9ff8-5146-a120-34b91f6e2c39",
+                    "leftValue": "={{ $json.setor_responsavel }}",
+                    "rightValue": "Atendimento",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "Atendimento"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "84712f46-b967-5a80-9c22-7ebc40144c11",
+                    "leftValue": "={{ $json.setor_responsavel }}",
+                    "rightValue": "Administrativo",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "Administrativo"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "Triagem"
+        }
+      },
+      "id": "119fe50e-6ff6-4fc8-b242-b602bb034b45",
+      "name": "Rotear por Setor",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        2960,
+        928
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// =====================================================================\n// ETAPA 16 | NOTIFICAR SETOR\n// Monta a notificação do setor que o Switch escolheu. O ENVIO REAL está pendente de configuração:\n// não há destinatário nem canal definidos, então nada é enviado e nada é inventado.\n// Para enviar de verdade, ligue a saída deste node a um node Email / Slack / WhatsApp\n// e use os campos notificacao.assunto e notificacao.mensagem.\n// =====================================================================\nreturn $input.all().map((item) => {\n  const j = item.json;\n  const contato = [j.telefone, j.email].filter(Boolean).join(' / ') || 'não informado';\n  const linhas = [\n    `Categoria: ${j.categoria}`,\n    `Cliente: ${j.nome || 'não informado'}`,\n    `Contato: ${contato}`,\n    `Solicitação: ${[j.tipo, j.observacao].filter(Boolean).join(' - ') || 'não informada'}`,\n    `Canal: ${j.canal_origem}`,\n    `Protocolo HUB: ${j.chave_registro}`,\n  ];\n  return { json: {\n    chave_registro: j.chave_registro,\n    setor_responsavel: j.setor_responsavel,\n    notificacao: {\n      assunto: `[HUB Rodomax] Nova solicitação para ${j.setor_responsavel}: ${j.categoria}`,\n      mensagem: linhas.join('\\n'),\n      destinatario: null,\n      status: 'pendente_configuracao',\n    },\n  } };\n});\n"
+      },
+      "id": "e4f04d3f-2146-45eb-93f5-5525256a5bc5",
+      "name": "Notificar Setor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3280,
+        992
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 1 Entradas\nWhatsApp, E-mail, Portal, PDF e TXT/CSV.\n**Teste Manual** traz dados de teste fixados (pinned).",
+        "height": 1040,
+        "width": 560,
+        "color": 4
+      },
+      "id": "32006ad0-3e8c-4711-bdea-f7b289855802",
+      "name": "Nota - 1 Entradas",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -224,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 2-3 Consolidação e extração\nUnifica todos os canais em um formato único e extrai os campos.",
+        "height": 340,
+        "width": 280,
+        "color": 5
+      },
+      "id": "4f6d3584-688a-4849-adc2-0693a4994478",
+      "name": "Nota - 2-3 Consolidação e extração",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        368,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 4-6 Tratamento e auditoria\nMapeia campos equivalentes, audita o lote e valida cada registro.",
+        "height": 340,
+        "width": 560,
+        "color": 6
+      },
+      "id": "457173ed-63c0-4c43-85ce-be402952c0cb",
+      "name": "Nota - 4-6 Tratamento e auditoria",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        672,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 7 Validação\nAprovados seguem para o HUB. **Reprovados e duplicados vão para a tabela de pendências** (nada é descartado).",
+        "height": 340,
+        "width": 280,
+        "color": 7
+      },
+      "id": "841c1a4b-0dea-4e96-8102-642d6334f851",
+      "name": "Nota - 7 Validação",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1248,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Revisão\nRamo de pendências: grava motivo e dados originais para revisão.",
+        "height": 292,
+        "width": 280,
+        "color": 3
+      },
+      "id": "49095b74-fe8a-45ed-8236-1dad455a3aff",
+      "name": "Nota - Revisão",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1536,
+        1152
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 8-9 Normalização e classificação\nRemove campos extras, padroniza e classifica **por regras de palavras-chave (não é IA)**.",
+        "height": 340,
+        "width": 560,
+        "color": 6
+      },
+      "id": "1918a977-83ca-4f3f-aec2-b39760666fce",
+      "name": "Nota - 8-9 Normalização e classificação",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1520,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 10-12 CRM (PENDENTE DE CONFIGURAÇÃO)\nInforme a URL real e a autenticação do CRM. Enquanto isso, a consulta falha sem interromper o fluxo e os testes usam dados simulados identificados como tal.",
+        "height": 340,
+        "width": 560,
+        "color": 2
+      },
+      "id": "49eb5cea-9b90-47d0-9603-17299625617a",
+      "name": "Nota - 10-12 CRM (PENDENTE DE CONFIGURAÇÃO)",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2096,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 13-14 HUB (PostgreSQL)\nConfigure a credencial PostgreSQL e execute o SQL de criação das tabelas. A gravação é upsert por chave_registro (sem duplicar).",
+        "height": 340,
+        "width": 280,
+        "color": 5
+      },
+      "id": "bfdba70b-5897-4334-ab49-8ecf01e39457",
+      "name": "Nota - 13-14 HUB (PostgreSQL)",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2656,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 15-16 Roteamento e notificação\nSwitch por setor (fallback: Triagem). O envio real da notificação está pendente de configuração.",
+        "height": 468,
+        "width": 600,
+        "color": 4
+      },
+      "id": "80d78b02-2de8-4950-9796-77aada593025",
+      "name": "Nota - 15-16 Roteamento e notificação",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2944,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// =====================================================================================\n// ETAPA 2 | IA 1 - GERAR BASE SINTÉTICA (e receber a demanda do formulário)\n// Cria 300 demandas FICTÍCIAS de transporte, com rótulo \"Atendida\" / \"Não atendida\".\n// ATENÇÃO: os rótulos vêm de HIPÓTESES OPERACIONAIS SIMULADAS (abaixo), não do histórico real\n// da Rodomax. O modelo aprende os padrões dessas hipóteses, e não a realidade da empresa.\n// A geração é determinística: a mesma SEMENTE produz sempre a mesma base (reprodutível).\n// A demanda nova (preenchida no Formulário nativo do n8n) apenas atravessa este node:\n// ela NÃO entra na base de treinamento.\n// =====================================================================================\n\nconst SEMENTE = 20261125;      // semente fixa do gerador pseudoaleatório\nconst N_REGISTROS = 300;       // tamanho da base sintética\nconst CLASSES = ['Atendida', 'Não atendida'];\n\n// Gerador pseudoaleatório determinístico (mulberry32): mesma semente => mesma sequência.\nfunction criarGerador(semente) {\n  let a = semente >>> 0;\n  return function () {\n    a = (a + 0x6D2B79F5) >>> 0;\n    let t = a;\n    t = Math.imul(t ^ (t >>> 15), t | 1);\n    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);\n    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;\n  };\n}\nconst rnd = criarGerador(SEMENTE);\n\n// Sorteio ponderado: escolhe um valor de uma lista [[valor, peso], ...]\nfunction sortear(opcoes) {\n  const total = opcoes.reduce((s, o) => s + o[1], 0);\n  let r = rnd() * total;\n  for (const [valor, peso] of opcoes) { r -= peso; if (r <= 0) return valor; }\n  return opcoes[opcoes.length - 1][0];\n}\n// Ruído com distribuição normal (Box-Muller)\nfunction ruidoNormal(desvio) {\n  const u1 = Math.max(rnd(), 1e-12), u2 = rnd();\n  return desvio * Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);\n}\nconst sigmoide = (x) => 1 / (1 + Math.exp(-x));\n\n// ---------------------------------------------------------------------------\n// HIPÓTESES OPERACIONAIS (simuladas) usadas para definir o resultado.\n// Cada fator soma (ou subtrai) \"risco de não atendimento\" a um escore. O escore, somado a um ruído\n// aleatório, vira uma probabilidade; o rótulo é sorteado a partir dela. Assim NENHUM atributo\n// isolado determina o resultado: há interações, limiares e acaso (erro irredutível).\n// ---------------------------------------------------------------------------\nconst HIPOTESES = [\n  'H1  Sem veículo disponível: risco muito maior (+2,0); sem motorista disponível: risco maior (+1,7); sem os dois, risco extra (+0,8).',\n  'H2  Prazo curto aumenta o risco (1 dia +1,6; 2 dias +1,0; 3 dias +0,5; 4-5 dias +0,1); prazo de 10 dias ou mais reduz (-0,5).',\n  'H3  Folga de prazo = prazo - distância/600 (hipótese: ~600 km percorridos por dia). Folga negativa: +1,8; folga entre 0 e 1 dia: +0,6.',\n  'H4  Carga pesada exige veículo raro: acima de 20.000 kg +1,0; acima de 12.000 kg +0,4.',\n  'H5  Tipo de carga: Perigosa +1,1 (motorista habilitado), Refrigerada +0,7 (veículo especial), Frágil +0,3, Granel +0,2, Geral 0.',\n  'H6  Urgência alta com veículo e motorista disponíveis é priorizada (-0,6); urgência alta com algum recurso faltando agrava (+0,3).',\n  'H7  Constante -2,2 (ajusta a proporção entre as classes) e ruído normal (desvio 0,8) para simular fatores não observados.',\n];\n\nfunction calcularEscore(d) {\n  let s = -2.2;\n  if (d.veiculo_disponivel === 'Não') s += 2.0;\n  if (d.motorista_disponivel === 'Não') s += 1.7;\n  if (d.veiculo_disponivel === 'Não' && d.motorista_disponivel === 'Não') s += 0.8;\n  if (d.prazo_dias <= 1) s += 1.6;\n  else if (d.prazo_dias === 2) s += 1.0;\n  else if (d.prazo_dias === 3) s += 0.5;\n  else if (d.prazo_dias <= 5) s += 0.1;\n  else if (d.prazo_dias >= 10) s -= 0.5;\n  const folga = d.prazo_dias - d.distancia_km / 600;\n  if (folga < 0) s += 1.8; else if (folga < 1) s += 0.6;\n  if (d.peso_kg > 20000) s += 1.0; else if (d.peso_kg > 12000) s += 0.4;\n  s += { 'Perigosa': 1.1, 'Refrigerada': 0.7, 'Frágil': 0.3, 'Granel': 0.2, 'Geral': 0 }[d.tipo_carga];\n  const semFalta = d.veiculo_disponivel === 'Sim' && d.motorista_disponivel === 'Sim';\n  if (d.urgencia === 'alta') s += semFalta ? -0.6 : 0.3;\n  return s;\n}\n\nconst base = [];\nconst vistos = new Set();\nlet tentativas = 0;\nwhile (base.length < N_REGISTROS && tentativas < 20000) {\n  tentativas++;\n  // --- atributos (distribuições plausíveis; urgência influencia o prazo) ---\n  const urgencia = sortear([['baixa', 35], ['média', 40], ['alta', 25]]);\n  const prazo_dias = urgencia === 'alta'\n    ? sortear([[1, 30], [2, 30], [3, 20], [4, 10], [5, 10]])\n    : urgencia === 'média'\n      ? sortear([[2, 10], [3, 20], [4, 20], [5, 20], [7, 20], [10, 10]])\n      : sortear([[4, 10], [5, 15], [7, 25], [10, 25], [15, 25]]);\n  const faixa = rnd();\n  const distancia_km = Math.round((faixa < 0.5 ? 50 + rnd() * 350 : faixa < 0.85 ? 400 + rnd() * 500 : 900 + rnd() * 1300) / 10) * 10;\n  const peso_kg = Math.round(Math.exp(Math.log(300) + rnd() * (Math.log(32000) - Math.log(300))) / 50) * 50;\n  const tipo_carga = sortear([['Geral', 40], ['Granel', 20], ['Refrigerada', 15], ['Frágil', 15], ['Perigosa', 10]]);\n  const veiculo_disponivel = rnd() < 0.68 ? 'Sim' : 'Não';\n  const motorista_disponivel = rnd() < 0.74 ? 'Sim' : 'Não';\n  const d = { distancia_km, peso_kg, prazo_dias, tipo_carga, veiculo_disponivel, motorista_disponivel, urgencia };\n\n  // evita registros idênticos\n  const chave = JSON.stringify(d);\n  if (vistos.has(chave)) continue;\n  vistos.add(chave);\n\n  // --- rótulo: escore + ruído -> probabilidade -> sorteio ---\n  const p_nao_atendida = sigmoide(calcularEscore(d) + ruidoNormal(0.8));\n  d.resultado = rnd() < p_nao_atendida ? 'Não atendida' : 'Atendida';\n  base.push(d);\n}\nbase.forEach((d, i) => { d.id = i + 1; });\n\n// --- demanda nova (Formulário nativo do n8n): só passa adiante, NÃO treina ---\n// O Form Trigger entrega cada resposta com o RÓTULO do campo como chave (ex.: \"Distância (km)\").\n// Aqui os rótulos viram os nomes de atributo do modelo. Os nomes técnicos (distancia_km...) também\n// são aceitos, para facilitar testes de código.\nconst CAMPOS_DO_FORMULARIO = {\n  distancia_km:         ['Distância (km)', 'distancia_km'],\n  peso_kg:              ['Peso da carga (kg)', 'peso_kg'],\n  prazo_dias:           ['Prazo para atendimento (dias)', 'prazo_dias'],\n  tipo_carga:           ['Tipo de carga', 'tipo_carga'],\n  veiculo_disponivel:   ['Veículo disponível?', 'veiculo_disponivel'],\n  motorista_disponivel: ['Motorista disponível?', 'motorista_disponivel'],\n  urgencia:             ['Urgência', 'urgencia'],\n};\nconst novas = $input.all().map((item, i) => {\n  const j = item.json || {};\n  const corpo = (j.body && typeof j.body === 'object') ? j.body : j;\n  const bruta = {};\n  for (const [atributo, nomes] of Object.entries(CAMPOS_DO_FORMULARIO)) {\n    const achado = nomes.find((n) => corpo[n] !== undefined);\n    bruta[atributo] = achado === undefined ? undefined : corpo[achado];\n  }\n  return { indice: i + 1, cenario: j._cenario || null, bruta };\n});\n\nconst contagem = {};\nCLASSES.forEach((c) => { contagem[c] = base.filter((d) => d.resultado === c).length; });\n\nreturn [{ json: {\n  base_sintetica: base,\n  geracao: {\n    semente: SEMENTE,\n    registros: base.length,\n    distribuicao_classes: contagem,\n    percentual_nao_atendida: Math.round((100 * contagem['Não atendida']) / base.length * 10) / 10,\n    aviso: 'Base 100% sintética. Os rótulos seguem hipóteses simuladas e não representam o histórico real da Rodomax.',\n    hipoteses: HIPOTESES,\n  },\n  novas_demandas_brutas: novas,\n} }];\n"
+      },
+      "id": "267f67b9-3f22-4a88-93fa-fd3d08ebcd32",
+      "name": "IA 1 - Gerar Base Sintética e Receber Demanda",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        2080
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// =====================================================================================\n// ETAPA 2 | IA 2 - PREPARAR ATRIBUTOS E SEPARAR TREINO/TESTE\n// 1) confere a base sintética e cria o atributo derivado km_por_dia;\n// 2) separa treino (80%) e teste (20%) de forma ESTRATIFICADA (mantém a proporção das classes);\n// 3) valida e padroniza a demanda nova vinda do formulário (aceita \"sim/não\", \"media/média\", maiúsculas etc.).\n// As demandas novas NUNCA entram em treino nem em teste.\n// =====================================================================================\n\nconst SEMENTE_SEPARACAO = 42;     // semente da divisão treino/teste (fixa => reprodutível)\nconst PROPORCAO_TESTE = 0.20;     // 80% treino / 20% teste\n\nconst d = $input.first().json;\n\n// Atributos do modelo. tipo 'num' => divisões \"atributo <= limiar\"; 'cat' => divisões \"atributo == valor\".\nconst ATRIBUTOS = [\n  { nome: 'distancia_km',         tipo: 'num', descricao: 'Distância entre origem e destino (km)' },\n  { nome: 'peso_kg',              tipo: 'num', descricao: 'Peso da carga (kg)' },\n  { nome: 'prazo_dias',           tipo: 'num', descricao: 'Prazo disponível para atendimento (dias)' },\n  { nome: 'km_por_dia',           tipo: 'num', descricao: 'Derivado: distancia_km / prazo_dias (km exigidos por dia)' },\n  { nome: 'tipo_carga',           tipo: 'cat', descricao: 'Geral, Granel, Refrigerada, Frágil ou Perigosa' },\n  { nome: 'veiculo_disponivel',   tipo: 'cat', descricao: 'Sim ou Não' },\n  { nome: 'motorista_disponivel', tipo: 'cat', descricao: 'Sim ou Não' },\n  { nome: 'urgencia',             tipo: 'cat', descricao: 'baixa, média ou alta' },\n];\nconst TIPOS_CARGA = ['Geral', 'Granel', 'Refrigerada', 'Frágil', 'Perigosa'];\nconst URGENCIAS = ['baixa', 'média', 'alta'];\nconst CLASSES = ['Atendida', 'Não atendida'];\n\n// Gerador pseudoaleatório determinístico (mulberry32)\nfunction criarGerador(semente) {\n  let a = semente >>> 0;\n  return function () {\n    a = (a + 0x6D2B79F5) >>> 0;\n    let t = a;\n    t = Math.imul(t ^ (t >>> 15), t | 1);\n    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);\n    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;\n  };\n}\nconst rnd = criarGerador(SEMENTE_SEPARACAO);\n\nconst semAcento = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').trim().toLowerCase();\nconst comKm = (r) => ({ ...r, km_por_dia: Math.round((r.distancia_km / r.prazo_dias) * 10) / 10 });\n\n// ---- 1) base: confere campos e cria o atributo derivado ----\nconst descartados = [];\nconst base = [];\nfor (const r of d.base_sintetica) {\n  const ok = r.distancia_km > 0 && r.peso_kg > 0 && r.prazo_dias > 0 && TIPOS_CARGA.includes(r.tipo_carga)\n    && ['Sim', 'Não'].includes(r.veiculo_disponivel) && ['Sim', 'Não'].includes(r.motorista_disponivel)\n    && URGENCIAS.includes(r.urgencia) && CLASSES.includes(r.resultado);\n  if (ok) base.push(comKm(r)); else descartados.push(r.id);\n}\n\n// ---- 2) separação estratificada: embaralha cada classe e reserva 20% dela para teste ----\nfunction embaralhar(lista) { // Fisher-Yates com gerador determinístico\n  const v = lista.slice();\n  for (let i = v.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [v[i], v[j]] = [v[j], v[i]]; }\n  return v;\n}\nconst treino = [], teste = [];\nfor (const classe of CLASSES) {\n  const grupo = embaralhar(base.filter((r) => r.resultado === classe));\n  const nTeste = Math.round(grupo.length * PROPORCAO_TESTE);\n  teste.push(...grupo.slice(0, nTeste));\n  treino.push(...grupo.slice(nTeste));\n}\nconst contar = (lista) => Object.fromEntries(CLASSES.map((c) => [c, lista.filter((r) => r.resultado === c).length]));\n\n// faixas do treino (usadas para avisar quando uma demanda nova está fora do que o modelo viu)\nconst faixa = (campo) => ({ min: Math.min(...treino.map((r) => r[campo])), max: Math.max(...treino.map((r) => r[campo])) });\nconst faixas = { distancia_km: faixa('distancia_km'), peso_kg: faixa('peso_kg'), prazo_dias: faixa('prazo_dias') };\n\n// ---- 3) validação e padronização das demandas novas ----\nfunction lerSimNao(v) {\n  const t = semAcento(v);\n  if (['sim', 's', 'true', '1', 'yes'].includes(t)) return 'Sim';\n  if (['nao', 'n', 'false', '0', 'no'].includes(t)) return 'Não';\n  return null;\n}\nfunction lerNumero(v) {\n  if (v === null || v === undefined || v === '') return NaN;\n  if (typeof v === 'number') return v;\n  const t = String(v).trim().replace(/\\s/g, '').replace(/\\.(?=\\d{3}(\\D|$))/g, '').replace(',', '.');\n  return /^-?\\d+(\\.\\d+)?$/.test(t) ? Number(t) : NaN;\n}\nconst ROTULO = { distancia_km: 'Distância (km)', peso_kg: 'Peso da carga (kg)', prazo_dias: 'Prazo para atendimento (dias)',\n  tipo_carga: 'Tipo de carga', veiculo_disponivel: 'Veículo disponível?', motorista_disponivel: 'Motorista disponível?', urgencia: 'Urgência' };\nfunction validarDemanda(b) {\n  const erros = [], avisos = [];\n  const dist = lerNumero(b.distancia_km), peso = lerNumero(b.peso_kg), prazo = lerNumero(b.prazo_dias);\n  if (!(dist >= 1 && dist <= 5000)) erros.push(`${ROTULO.distancia_km}: valor inválido (informe um número entre 1 e 5000): ${JSON.stringify(b.distancia_km ?? null)}`);\n  if (!(peso >= 1 && peso <= 60000)) erros.push(`${ROTULO.peso_kg}: valor inválido (informe um número entre 1 e 60000): ${JSON.stringify(b.peso_kg ?? null)}`);\n  if (!(Number.isInteger(prazo) && prazo >= 1 && prazo <= 90)) erros.push(`${ROTULO.prazo_dias}: valor inválido (informe um inteiro entre 1 e 90): ${JSON.stringify(b.prazo_dias ?? null)}`);\n  const tipo = TIPOS_CARGA.find((t) => semAcento(t) === semAcento(b.tipo_carga ?? ''));\n  if (!tipo) erros.push(`${ROTULO.tipo_carga}: valor inválido (use: ${TIPOS_CARGA.join(', ')}): ${JSON.stringify(b.tipo_carga ?? null)}`);\n  const veic = lerSimNao(b.veiculo_disponivel ?? '');\n  if (!veic) erros.push(`${ROTULO.veiculo_disponivel}: valor inválido (use Sim ou Não): ${JSON.stringify(b.veiculo_disponivel ?? null)}`);\n  const mot = lerSimNao(b.motorista_disponivel ?? '');\n  if (!mot) erros.push(`${ROTULO.motorista_disponivel}: valor inválido (use Sim ou Não): ${JSON.stringify(b.motorista_disponivel ?? null)}`);\n  const urg = URGENCIAS.find((u) => semAcento(u) === semAcento(b.urgencia ?? ''));\n  if (!urg) erros.push(`${ROTULO.urgencia}: valor inválido (use: ${URGENCIAS.join(', ')}): ${JSON.stringify(b.urgencia ?? null)}`);\n  if (erros.length) return { valida: false, erros, avisos, demanda: null };\n\n  const demanda = comKm({ distancia_km: dist, peso_kg: peso, prazo_dias: prazo, tipo_carga: tipo, veiculo_disponivel: veic, motorista_disponivel: mot, urgencia: urg });\n  for (const campo of Object.keys(faixas)) {\n    if (demanda[campo] < faixas[campo].min || demanda[campo] > faixas[campo].max) {\n      avisos.push(`${ROTULO[campo]} = ${demanda[campo]} está fora da faixa vista no treino (${faixas[campo].min} a ${faixas[campo].max}): a previsão é uma extrapolação.`);\n    }\n  }\n  return { valida: true, erros, avisos, demanda };\n}\nconst novas = d.novas_demandas_brutas.map((n) => ({ indice: n.indice, cenario: n.cenario, bruta: n.bruta, ...validarDemanda(n.bruta || {}) }));\n\nreturn [{ json: {\n  atributos: ATRIBUTOS,\n  classes: CLASSES,\n  treino,\n  teste,\n  novas,\n  geracao: d.geracao,\n  preparacao: {\n    registros_base: base.length,\n    descartados_na_conferencia: descartados.length,\n    semente_separacao: SEMENTE_SEPARACAO,\n    proporcao_teste: PROPORCAO_TESTE,\n    estratificada: true,\n    treino: { registros: treino.length, classes: contar(treino) },\n    teste: { registros: teste.length, classes: contar(teste) },\n    atributo_derivado: 'km_por_dia = distancia_km / prazo_dias',\n    faixas_treino: faixas,\n  },\n} }];\n"
+      },
+      "id": "782205df-9810-4a8f-a0c9-d2fa02b62ba8",
+      "name": "IA 2 - Preparar e Separar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        576,
+        2080
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// =====================================================================================\n// ETAPA 2 | IA 3 - TREINAR ÁRVORE DE DECISÃO (CART com índice Gini, JavaScript puro)\n// Aprendizado supervisionado: a árvore aprende, SÓ com o conjunto de treino, quais perguntas\n// (divisões) melhor separam \"Atendida\" de \"Não atendida\". Não há regras escritas à mão aqui:\n// as perguntas e os limiares saem dos dados.\n//\n// Algoritmo (para cada nó, recursivamente):\n//   1. calcula a impureza Gini do nó:  Gini = 1 - soma(proporção_da_classe^2)\n//   2. testa todas as divisões possíveis de cada atributo:\n//        numérico:    \"atributo <= limiar\" (limiar = ponto médio entre valores consecutivos)\n//        categórico:  \"atributo == valor\"  (um valor contra os demais)\n//   3. escolhe a divisão com maior GANHO = Gini(pai) - média ponderada dos Gini dos filhos\n//   4. divide os registros e repete nos dois filhos\n//   5. para (vira folha) quando: profundidade máxima, poucas amostras, nó puro,\n//      nenhuma divisão com ganho positivo ou filhos menores que o mínimo por folha.\n// =====================================================================================\n\n// ---------------- PARÂMETROS (definidos antes de olhar o teste) ----------------\nconst PARAMETROS = {\n  criterio: 'gini',\n  profundidade_maxima: 5,        // limita o tamanho da árvore (controla overfitting)\n  min_amostras_divisao: 10,      // nó com menos registros que isso não é dividido\n  min_amostras_folha: 4,         // cada filho precisa ter pelo menos isso\n  ganho_minimo: 1e-7,            // ganho de Gini mínimo para aceitar a divisão\n};\n\nconst d = $input.first().json;\nconst CLASSES = d.classes;               // ['Atendida', 'Não atendida']\nconst ATRIBUTOS = d.atributos;\nconst treino = d.treino;                 // a árvore só enxerga este conjunto\n\n// Conta quantos registros há de cada classe\nfunction contarClasses(regs) {\n  const c = Object.fromEntries(CLASSES.map((k) => [k, 0]));\n  for (const r of regs) c[r.resultado]++;\n  return c;\n}\n// Impureza de Gini a partir das contagens\nfunction gini(contagem, n) {\n  if (n === 0) return 0;\n  let soma = 0;\n  for (const k of CLASSES) soma += (contagem[k] / n) ** 2;\n  return 1 - soma;\n}\n// Classe majoritária (empate: a primeira da lista)\nfunction majoritaria(contagem) {\n  return CLASSES.reduce((a, b) => (contagem[b] > contagem[a] ? b : a));\n}\n\n// Procura a melhor divisão do conjunto 'regs' entre todos os atributos e limiares.\nfunction melhorDivisao(regs) {\n  const n = regs.length;\n  const contPai = contarClasses(regs);\n  const giniPai = gini(contPai, n);\n  let melhor = null;\n\n  const avaliar = (atributo, op, valor, cEsq, nEsq) => {\n    const nDir = n - nEsq;\n    if (nEsq < PARAMETROS.min_amostras_folha || nDir < PARAMETROS.min_amostras_folha) return;\n    const cDir = Object.fromEntries(CLASSES.map((k) => [k, contPai[k] - cEsq[k]]));\n    const giniFilhos = (nEsq / n) * gini(cEsq, nEsq) + (nDir / n) * gini(cDir, nDir);\n    const ganho = giniPai - giniFilhos;\n    if (ganho > PARAMETROS.ganho_minimo && (!melhor || ganho > melhor.ganho + 1e-12)) {\n      melhor = { atributo, op, valor, ganho };\n    }\n  };\n\n  for (const attr of ATRIBUTOS) {\n    if (attr.tipo === 'num') {\n      // ordena pelo atributo e varre os pontos de corte, acumulando as contagens da esquerda\n      const ord = regs.slice().sort((a, b) => a[attr.nome] - b[attr.nome]);\n      const cEsq = Object.fromEntries(CLASSES.map((k) => [k, 0]));\n      for (let i = 0; i < n - 1; i++) {\n        cEsq[ord[i].resultado]++;\n        const v1 = ord[i][attr.nome], v2 = ord[i + 1][attr.nome];\n        if (v1 === v2) continue;                        // só corta entre valores diferentes\n        avaliar(attr.nome, '<=', (v1 + v2) / 2, { ...cEsq }, i + 1);\n      }\n    } else {\n      // categórico: testa \"atributo == valor\" para cada valor presente\n      const valores = [...new Set(regs.map((r) => r[attr.nome]))];\n      for (const v of valores) {\n        const sub = regs.filter((r) => r[attr.nome] === v);\n        avaliar(attr.nome, '==', v, contarClasses(sub), sub.length);\n      }\n    }\n  }\n  return melhor;\n}\n\nconst testar = (r, dv) => (dv.op === '<=' ? r[dv.atributo] <= dv.valor : r[dv.atributo] === dv.valor);\nconst importancia = Object.fromEntries(ATRIBUTOS.map((a) => [a.nome, 0]));\nconst N_TOTAL = treino.length;\n\n// Constrói a árvore recursivamente\nfunction construir(regs, profundidade) {\n  const n = regs.length;\n  const contagem = contarClasses(regs);\n  const g = gini(contagem, n);\n  const folha = { tipo: 'folha', classe: majoritaria(contagem), n, contagem, gini: Math.round(g * 1000) / 1000 };\n\n  // critérios de parada\n  if (profundidade >= PARAMETROS.profundidade_maxima) return folha;\n  if (n < PARAMETROS.min_amostras_divisao) return folha;\n  if (g === 0) return folha;\n\n  const dv = melhorDivisao(regs);\n  if (!dv) return folha;\n\n  importancia[dv.atributo] += (n / N_TOTAL) * dv.ganho;   // para a importância dos atributos\n  const esq = regs.filter((r) => testar(r, dv));\n  const dir = regs.filter((r) => !testar(r, dv));\n  return {\n    tipo: 'divisao',\n    atributo: dv.atributo, op: dv.op, valor: dv.valor,\n    n, contagem, gini: Math.round(g * 1000) / 1000, ganho: Math.round(dv.ganho * 1000) / 1000,\n    esquerda: construir(esq, profundidade + 1),     // condição verdadeira\n    direita: construir(dir, profundidade + 1),      // condição falsa\n  };\n}\n\n// ---------------- TREINAMENTO ----------------\nconst arvore = construir(treino, 0);\n\n// ---------------- Resumo e texto da árvore (para a apresentação) ----------------\nlet nNos = 0, nFolhas = 0, profReal = 0;\n(function percorrer(no, p) { nNos++; profReal = Math.max(profReal, p);\n  if (no.tipo === 'folha') { nFolhas++; return; }\n  percorrer(no.esquerda, p + 1); percorrer(no.direita, p + 1); })(arvore, 0);\n\nconst fmtValor = (v) => (typeof v === 'number' ? String(Math.round(v * 100) / 100) : v);\nconst linhas = [];\n(function imprimir(no, recuo) {\n  if (no.tipo === 'folha') {\n    linhas.push(`${recuo}=> ${no.classe}  (n=${no.n}; Atendida=${no.contagem['Atendida']}, Não atendida=${no.contagem['Não atendida']})`);\n    return;\n  }\n  linhas.push(`${recuo}${no.atributo} ${no.op} ${fmtValor(no.valor)}  [n=${no.n}, gini=${no.gini}, ganho=${no.ganho}]`);\n  imprimir(no.esquerda, recuo + '|  sim: ');\n  imprimir(no.direita, recuo + '|  não: ');\n})(arvore, '');\n\nconst somaImp = Object.values(importancia).reduce((a, b) => a + b, 0) || 1;\nconst importancias = Object.entries(importancia)\n  .map(([atributo, v]) => ({ atributo, importancia: Math.round((v / somaImp) * 1000) / 1000 }))\n  .sort((a, b) => b.importancia - a.importancia);\n\nreturn [{ json: {\n  ...d,\n  modelo: {\n    algoritmo: 'Árvore de Decisão (CART) com índice Gini, implementada em JavaScript puro',\n    parametros: PARAMETROS,\n    treinado_com: { registros: treino.length, classes: contarClasses(treino) },\n    nos: nNos, folhas: nFolhas, profundidade_real: profReal,\n    importancia_atributos: importancias,\n    arvore_texto: linhas.join('\\n'),\n    arvore,\n  },\n} }];\n"
+      },
+      "id": "9d9aac69-4d38-4852-9e7b-c33e5cdb2c40",
+      "name": "IA 3 - Treinar Árvore (Gini)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        928,
+        2080
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// =====================================================================================\n// ETAPA 2 | IA 4 - AVALIAR O MODELO, CLASSIFICAR A DEMANDA NOVA E MONTAR A TELA DE RESULTADO\n// (junta os antigos \"IA 4 - Avaliar\" e \"IA 5 - Classificar\" para respeitar o limite de 25 nodes)\n//\n// PARTE A - AVALIAÇÃO: usa as 60 demandas de TESTE (que a árvore nunca viu). Todas as métricas\n//   são calculadas a partir das previsões feitas aqui; nenhum número é digitado à mão.\n//   Classe positiva = \"Não atendida\" (é o risco que a equipe quer detectar).\n//     Precisão = dos casos que o modelo apontou como \"Não atendida\", quantos realmente eram.\n//     Recall   = dos casos que realmente eram \"Não atendida\", quantos o modelo encontrou.\n//     F1       = média harmônica de precisão e recall.\n//   Linha de base: prever SEMPRE a classe mais frequente do conjunto de TREINO.\n// PARTE B - CLASSIFICAÇÃO: usa a árvore treinada NESTA MESMA execução (nada fica em variável\n//   global, arquivo ou banco). A demanda nova não participou do treino nem do teste.\n//   Confiança estimada = (k+1)/(n+2) na folha (suavização de Laplace); NÃO é probabilidade calibrada.\n// PARTE C - APRESENTAÇÃO: monta uma página HTML simples (campo \"html\") que o próximo node\n//   (Form - Ending) mostra ao usuário. É APOIO À DECISÃO, não decisão definitiva.\n// =====================================================================================\n\nconst d = $input.first().json;\nconst POSITIVA = 'Não atendida', NEGATIVA = 'Atendida';\nconst arvore = d.modelo.arvore;\nconst fmt = (v) => (typeof v === 'number' ? String(Math.round(v * 100) / 100) : v);\n\n// Percorre a árvore até uma folha, registrando cada pergunta respondida (caminho de decisão)\nfunction preverComCaminho(no, r) {\n  const caminho = [];\n  while (no.tipo === 'divisao') {\n    const cond = no.op === '<=' ? r[no.atributo] <= no.valor : r[no.atributo] === no.valor;\n    caminho.push({ pergunta: `${no.atributo} ${no.op} ${fmt(no.valor)}`, valor_da_demanda: r[no.atributo], resposta: cond ? 'sim' : 'não' });\n    no = cond ? no.esquerda : no.direita;\n  }\n  return { folha: no, caminho };\n}\nconst prever = (r) => preverComCaminho(arvore, r).folha.classe;\n\n// ======================= PARTE A - AVALIAÇÃO NO CONJUNTO DE TESTE =======================\nconst cTreino = d.modelo.treinado_com.classes;\nconst classeBase = cTreino[POSITIVA] > cTreino[NEGATIVA] ? POSITIVA : NEGATIVA;   // linha de base\n\nfunction metricas(reais, previstos) {\n  let vp = 0, fp = 0, fn = 0, vn = 0;\n  reais.forEach((real, i) => {\n    const p = previstos[i];\n    if (real === POSITIVA && p === POSITIVA) vp++;\n    else if (real !== POSITIVA && p === POSITIVA) fp++;\n    else if (real === POSITIVA && p !== POSITIVA) fn++;\n    else vn++;\n  });\n  const div = (a, b) => (b === 0 ? 0 : a / b);        // convenção: divisão por zero => 0\n  const precisao = div(vp, vp + fp), recall = div(vp, vp + fn);\n  const arred = (x) => Math.round(x * 1000) / 1000;\n  return {\n    acuracia: arred(div(vp + vn, reais.length)), precisao: arred(precisao), recall: arred(recall),\n    f1: arred(div(2 * precisao * recall, precisao + recall)),\n    matriz_confusao: {\n      legenda: 'linhas = classe real; colunas = classe prevista',\n      rotulos: [NEGATIVA, POSITIVA], valores: [[vn, fp], [fn, vp]],\n      vn_atendida_prevista_atendida: vn, fp_atendida_prevista_nao_atendida: fp,\n      fn_nao_atendida_prevista_atendida: fn, vp_nao_atendida_prevista_nao_atendida: vp,\n    },\n  };\n}\nconst reaisTeste = d.teste.map((r) => r.resultado);\nconst prevTeste = d.teste.map((r) => prever(r));\nconst arvoreTeste = metricas(reaisTeste, prevTeste);\nconst baseTeste = metricas(reaisTeste, d.teste.map(() => classeBase));\nconst acuraciaTreino = metricas(d.treino.map((r) => r.resultado), d.treino.map((r) => prever(r))).acuracia;\n\n// Comparação honesta com a linha de base\nconst ganho = Math.round((arvoreTeste.acuracia - baseTeste.acuracia) * 1000) / 1000;\nconst veredito = ganho > 0\n  ? `A árvore SUPEROU a linha de base: acurácia ${arvoreTeste.acuracia} contra ${baseTeste.acuracia} (+${ganho}). A linha de base (sempre \"${classeBase}\") tem recall ${baseTeste.recall}: não detecta nenhuma demanda em risco; a árvore detecta ${arvoreTeste.recall}.`\n  : `A árvore NÃO superou a linha de base: acurácia ${arvoreTeste.acuracia} contra ${baseTeste.acuracia}. Possíveis causas: base pequena, ruído nos rótulos sintéticos ou árvore ajustada demais ao treino.`;\nconst comPrev = d.teste.map((r, i) => ({ ...r, previsto: prevTeste[i] }));\nconst erros = comPrev.filter((r) => r.previsto !== r.resultado);\nconst avaliacao = {\n  conjunto: `teste (${d.teste.length} demandas nunca vistas no treino)`,\n  classe_positiva: POSITIVA,\n  arvore_de_decisao: arvoreTeste,\n  linha_de_base: { regra: `prever sempre \"${classeBase}\" (classe mais frequente no treino)`, ...baseTeste },\n  acuracia_no_treino: acuraciaTreino,\n  diferenca_acuracia_treino_menos_teste: Math.round((acuraciaTreino - arvoreTeste.acuracia) * 1000) / 1000,\n  ganho_de_acuracia_sobre_a_linha_de_base: ganho,\n  superou_a_linha_de_base: ganho > 0,\n  veredito,\n  observacao: `Com apenas ${d.teste.length} demandas de teste, cada erro altera a acurácia em ~${Math.round(1000 / d.teste.length) / 10} ponto percentual: os números são indicativos.`,\n  erros_no_teste: erros.length,\n  exemplos_de_erros_falso_positivo: erros.filter((r) => r.previsto === POSITIVA).slice(0, 3),\n  exemplos_de_erros_falso_negativo: erros.filter((r) => r.previsto !== POSITIVA).slice(0, 3),\n  exemplos_de_acertos: comPrev.filter((r) => r.previsto === r.resultado).slice(0, 3),\n};\n\n// ======================= PARTE B - CLASSIFICAÇÃO DA DEMANDA NOVA =======================\nconst principais = d.modelo.importancia_atributos.filter((a) => a.importancia > 0).slice(0, 3);\nconst modelo = {\n  algoritmo: d.modelo.algoritmo, parametros: d.modelo.parametros,\n  treinado_com: `${d.modelo.treinado_com.registros} demandas sintéticas`,\n  acuracia_no_teste: arvoreTeste.acuracia, f1_no_teste: arvoreTeste.f1,\n  acuracia_linha_de_base: baseTeste.acuracia, superou_a_linha_de_base: avaliacao.superou_a_linha_de_base,\n};\nconst AVISO = 'Ferramenta de apoio à decisão treinada com dados SINTÉTICOS (hipóteses simuladas); não representa o histórico real da Rodomax e não deve ser a única base para recusar ou aceitar uma demanda.';\n\n// ======================= PARTE C - PÁGINA HTML DE RESULTADO =======================\nconst esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;');\nconst ROTULO = { distancia_km: 'Distância (km)', peso_kg: 'Peso da carga (kg)', prazo_dias: 'Prazo (dias)', km_por_dia: 'Km exigidos por dia (distância ÷ prazo)',\n  tipo_carga: 'Tipo de carga', veiculo_disponivel: 'Veículo disponível', motorista_disponivel: 'Motorista disponível', urgencia: 'Urgência' };\nconst EST = 'font-family:Arial,Helvetica,sans-serif;max-width:720px;margin:0 auto;text-align:left;line-height:1.45;font-size:15px';\nconst TH = 'border:1px solid #bbb;padding:4px 8px;background:#f1f1f1;text-align:center';\nconst TD = 'border:1px solid #bbb;padding:4px 8px;text-align:center';\nconst pct = (x) => `${Math.round(x * 1000) / 10}%`;\nconst a = arvoreTeste, b = baseTeste, mc = a.matriz_confusao;\n\nconst blocoModelo = `\n<h3 style=\"margin:18px 0 6px\">Quão confiável é o modelo? (teste com ${d.teste.length} demandas que ele nunca viu)</h3>\n<table style=\"border-collapse:collapse;width:100%\"><tr><th style=\"${TH}\"></th><th style=\"${TH}\">Acurácia</th><th style=\"${TH}\">Precisão</th><th style=\"${TH}\">Recall</th><th style=\"${TH}\">F1</th></tr>\n<tr><td style=\"${TD}\"><b>Árvore de decisão</b></td><td style=\"${TD}\">${a.acuracia}</td><td style=\"${TD}\">${a.precisao}</td><td style=\"${TD}\">${a.recall}</td><td style=\"${TD}\">${a.f1}</td></tr>\n<tr><td style=\"${TD}\">Linha de base (sempre \"${esc(classeBase)}\")</td><td style=\"${TD}\">${b.acuracia}</td><td style=\"${TD}\">${b.precisao}</td><td style=\"${TD}\">${b.recall}</td><td style=\"${TD}\">${b.f1}</td></tr></table>\n<p style=\"margin:8px 0 4px\"><b>Matriz de confusão da árvore</b> (linhas = real; colunas = previsto): real Atendida → ${mc.vn_atendida_prevista_atendida} previstas Atendida e ${mc.fp_atendida_prevista_nao_atendida} previstas Não atendida; real Não atendida → ${mc.fn_nao_atendida_prevista_atendida} previstas Atendida e ${mc.vp_nao_atendida_prevista_nao_atendida} previstas Não atendida.</p>\n<p style=\"margin:4px 0\">${esc(veredito)} Acurácia no treino: ${acuraciaTreino} (diferença para o teste: ${avaliacao.diferenca_acuracia_treino_menos_teste}). ${esc(avaliacao.observacao)}</p>\n<p style=\"margin:10px 0 0;padding:8px;background:#fff4e5;border:1px solid #f0c27b\"><b>Atenção:</b> ${esc(AVISO)}</p>`;\n\nfunction paginaDe(conteudo) {\n  return `<div style=\"${EST}\"><h2 style=\"margin:0 0 8px\">Classificação de demanda — Rodomax Transportes</h2>${conteudo}${blocoModelo}</div>`;\n}\n\n// ---- uma saída por demanda recebida (pelo formulário, será uma) ----\nreturn d.novas.map((n) => {\n  const base = { demanda_numero: n.indice, cenario: n.cenario, entrada_recebida: n.bruta };\n  if (!n.valida) {\n    const html = paginaDe(`<div style=\"padding:10px;background:#fdecea;border:1px solid #e57373\"><b>Não foi possível classificar: há problemas nos dados informados.</b>\n      <ul style=\"margin:6px 0 0 18px\">${n.erros.map((e) => `<li>${esc(e)}</li>`).join('')}</ul>Corrija os campos e envie o formulário novamente.</div>`);\n    return { json: { ...base, status: 'entrada_invalida', erros: n.erros,\n      mensagem: 'A demanda não foi classificada porque a entrada é inválida. Corrija os campos indicados e envie novamente.', avaliacao, modelo, html } };\n  }\n  const { folha, caminho } = preverComCaminho(arvore, n.demanda);\n  const confianca = Math.round(((folha.contagem[folha.classe] + 1) / (folha.n + 2)) * 1000) / 10;\n  const pNao = Math.round(((folha.contagem[POSITIVA] + 1) / (folha.n + 2)) * 1000) / 10;\n  const naoAtendida = folha.classe === POSITIVA;\n  const condicoes = caminho.map((c) => `${c.pergunta} (${c.resposta})`).join('; ') || 'nenhuma divisão (árvore de um só nó)';\n  const interpretacao = naoAtendida\n    ? `Características semelhantes às de demandas classificadas como NÃO ATENDIDAS no conjunto de treinamento: ${folha.contagem[POSITIVA]} de ${folha.n} demandas de treino que chegaram a esta mesma folha não foram atendidas. Sugestão: priorizar a verificação de veículo, motorista e prazo desta demanda.`\n    : `Características semelhantes às de demandas ATENDIDAS no conjunto de treinamento: ${folha.contagem['Atendida']} de ${folha.n} demandas de treino que chegaram a esta mesma folha foram atendidas. Isso indica condições favoráveis, não garantia de atendimento.`;\n  const atributosDaDecisao = [...new Set(caminho.map((c) => c.pergunta.split(' ')[0]))];\n\n  const cor = naoAtendida ? '#c62828' : '#2e7d32', fundo = naoAtendida ? '#fdecea' : '#e8f5e9';\n  const entrada = Object.entries(n.demanda).map(([k, v]) => `<li>${esc(ROTULO[k] || k)}: <b>${esc(v)}</b></li>`).join('');\n  const passos = caminho.map((c) => `<li>${esc(ROTULO[c.pergunta.split(' ')[0]] || c.pergunta.split(' ')[0])}: <code>${esc(c.pergunta)}</code> — valor desta demanda: <b>${esc(fmt(c.valor_da_demanda))}</b> → <b>${c.resposta}</b></li>`).join('');\n  const html = paginaDe(`\n    <div style=\"padding:12px;background:${fundo};border:2px solid ${cor};text-align:center\">\n      <div style=\"font-size:13px;color:#555\">Classe prevista</div>\n      <div style=\"font-size:28px;font-weight:bold;color:${cor}\">${esc(folha.classe)}</div>\n      <div>Confiança estimada: <b>${confianca}%</b> <span style=\"font-size:12px;color:#555\">(frequência na folha da árvore, não é probabilidade calibrada)</span></div></div>\n    <h3 style=\"margin:16px 0 4px\">O que isso significa</h3><p style=\"margin:0\">${esc(interpretacao)}</p>\n    <h3 style=\"margin:16px 0 4px\">Caminho de decisão da árvore</h3><ol style=\"margin:0 0 0 20px\">${passos || '<li>Árvore sem divisões.</li>'}</ol>\n    <p style=\"margin:6px 0 0\">Base da confiança: folha com ${folha.n} demandas de treino (Atendida=${folha.contagem['Atendida']}, Não atendida=${folha.contagem['Não atendida']}).</p>\n    <h3 style=\"margin:16px 0 4px\">Principais atributos considerados</h3>\n    <p style=\"margin:0\">Nesta decisão: ${atributosDaDecisao.map((x) => esc(ROTULO[x] || x)).join(', ')}.<br>\n    Mais importantes no modelo (redução de Gini): ${principais.map((p) => `${esc(ROTULO[p.atributo] || p.atributo)} (${p.importancia})`).join(', ')}.</p>\n    ${n.avisos.length ? `<div style=\"margin-top:12px;padding:8px;background:#fff4e5;border:1px solid #f0c27b\"><b>Avisos:</b><ul style=\"margin:4px 0 0 18px\">${n.avisos.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}\n    <h3 style=\"margin:16px 0 4px\">Demanda informada</h3><ul style=\"margin:0 0 0 20px\">${entrada}</ul>`);\n\n  return { json: {\n    ...base, status: 'classificada', classe_prevista: folha.classe,\n    confianca_estimada_percentual: confianca, probabilidade_estimada_nao_atendida_percentual: pNao,\n    base_da_confianca: `folha com ${folha.n} demandas de treino (Atendida=${folha.contagem['Atendida']}, Não atendida=${folha.contagem['Não atendida']}); suavização de Laplace`,\n    interpretacao, atributos_da_decisao: atributosDaDecisao, caminho_de_decisao: caminho, resumo_do_caminho: condicoes,\n    atributos_mais_importantes_no_modelo: principais, demanda_padronizada: n.demanda, avisos: n.avisos,\n    avaliacao, modelo, aviso_de_uso: AVISO, html,\n  } };\n});\n"
+      },
+      "id": "49966661-070f-4b5f-8822-188c77c2b1ba",
+      "name": "IA 4 - Avaliar, Classificar e Montar Resultado",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1264,
+        2080
+      ]
+    },
+    {
+      "parameters": {
+        "content": "# ETAPA 1 — HUB INTEGRADOR\nRecebimento, consolidação, tratamento, auditoria, integração (CRM), armazenamento (PostgreSQL) e roteamento. Funcionamento preservado da versão simplificada.",
+        "width": 1336,
+        "color": 4
+      },
+      "id": "be9103b7-053a-4371-9750-5f728c39660b",
+      "name": "Nota - ETAPA 1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -224,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "content": "# ETAPA 2 — MÓDULO DE INTELIGÊNCIA ARTIFICIAL — CLASSIFICAÇÃO DE DEMANDAS\nPergunta: esta demanda tem condições favoráveis de atendimento ou corre o risco de ficar parada?\nTudo roda numa única execução dentro do n8n: gera dados, treina, avalia e classifica. **Dados sintéticos; apoio à decisão.** Independe do PostgreSQL e do CRM (a Etapa 1 e a Etapa 2 não estão ligadas por conexão: o HUB não guarda distância, peso, prazo nem disponibilidades).",
+        "height": 170,
+        "width": 2200,
+        "color": 6
+      },
+      "id": "fe952b7f-b522-44f4-9a9a-a9349338a9f5",
+      "name": "Nota - ETAPA 2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -224,
+        1760
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Entrada\n**Formulário nativo do n8n** (Form Trigger): 7 campos operacionais; listas de opções evitam erro de digitação. A demanda NÃO entra no treino nem no teste.",
+        "height": 420,
+        "width": 300,
+        "color": 7
+      },
+      "id": "fcfc32c8-cf9d-4d6a-b6c9-cb56f03b94a9",
+      "name": "Nota - IA Entradas",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -224,
+        1936
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 1-2 Dados\nBase sintética de 300 demandas (semente fixa) e divisão estratificada 80/20. Validação e padronização da demanda do formulário.",
+        "height": 300,
+        "width": 680,
+        "color": 5
+      },
+      "id": "17d5a01f-daf4-4ef3-b660-2a885feed5e4",
+      "name": "Nota - IA 1-2 Dados",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        208,
+        1936
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 3-4 Modelo\n3: Árvore de Decisão CART (Gini) em JavaScript puro. 4: avaliação no teste, comparação com a linha de base e classificação da demanda nova com a árvore recém-treinada.",
+        "height": 300,
+        "width": 680,
+        "color": 3
+      },
+      "id": "529a66ff-1cf1-4087-aae3-5440e2d97d9e",
+      "name": "Nota - IA 3-4 Modelo",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        880,
+        1936
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 5 Resultado\nTela final (Form Ending): classe, confiança, caminho de decisão, interpretação, avisos e métricas.",
+        "height": 300,
+        "width": 420,
+        "color": 2
+      },
+      "id": "21f83c68-a64d-499d-8e68-335ff2e5a71b",
+      "name": "Nota - IA 5 Resultado",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1568,
+        1936
+      ]
+    },
+    {
+      "parameters": {
+        "formTitle": "Nova demanda de transporte — classificar risco de atendimento",
+        "formDescription": "Informe os dados operacionais da demanda. A árvore de decisão (treinada agora, com <b>dados sintéticos</b>) indica se ela tem condições favoráveis de atendimento ou risco de ficar parada. É apoio à decisão, não decisão final. A demanda informada <b>não</b> entra na base de treino nem de teste.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Distância (km)",
+              "fieldType": "number",
+              "placeholder": "ex.: 450",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Peso da carga (kg)",
+              "fieldType": "number",
+              "placeholder": "ex.: 8000",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Prazo para atendimento (dias)",
+              "fieldType": "number",
+              "placeholder": "ex.: 2",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Tipo de carga",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Geral"
+                  },
+                  {
+                    "option": "Granel"
+                  },
+                  {
+                    "option": "Refrigerada"
+                  },
+                  {
+                    "option": "Frágil"
+                  },
+                  {
+                    "option": "Perigosa"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Veículo disponível?",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Sim"
+                  },
+                  {
+                    "option": "Não"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Motorista disponível?",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Sim"
+                  },
+                  {
+                    "option": "Não"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Urgência",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "baixa"
+                  },
+                  {
+                    "option": "média"
+                  },
+                  {
+                    "option": "alta"
+                  }
+                ]
+              },
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {
+          "appendAttribution": false,
+          "buttonLabel": "Classificar demanda",
+          "path": "rodomax-classificar-demanda"
+        }
+      },
+      "id": "fc4cf265-b5fb-4c9f-94e9-dfed943f5458",
+      "name": "IA Formulário - Nova Demanda",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.5,
+      "position": [
+        -176,
+        2096
+      ],
+      "webhookId": "38956d3e-2e99-439e-b956-e193514f0142"
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "respondWith": "showText",
+        "responseText": "={{ $json.html }}"
+      },
+      "id": "a3f3a036-38ba-469c-b0a4-d389d65bfa0e",
+      "name": "IA 5 - Tela de Resultado (Form Ending)",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        1600,
+        2080
+      ],
+      "webhookId": "7c0d2e44-3b6a-5c11-8a47-9f0a6b1d2e55"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst dados = [\n  // 5 registros de WhatsApp\n  {\n    _canal: 'whatsapp',\n    _teste: true,\n    _cenario: 'whatsapp',\n    body: {\n      from: '5542999910001',\n      nome_cliente: 'João Silva',\n      mensagem: 'Solicito informações sobre meu pedido.',\n      documento: '12345678901'\n    }\n  },\n  {\n    _canal: 'whatsapp',\n    _teste: true,\n    _cenario: 'whatsapp',\n    body: {\n      from: '5542999910002',\n      nome_cliente: 'Maria Souza',\n      mensagem: 'Preciso atualizar meu cadastro.',\n      documento: '23456789012'\n    }\n  },\n  {\n    _canal: 'whatsapp',\n    _teste: true,\n    _cenario: 'whatsapp',\n    body: {\n      from: '5542999910003',\n      nome_cliente: 'Carlos Mendes',\n      mensagem: 'Gostaria de consultar uma entrega.',\n      documento: '34567890123'\n    }\n  },\n  {\n    _canal: 'whatsapp',\n    _teste: true,\n    _cenario: 'whatsapp',\n    body: {\n      from: '5542999910004',\n      nome_cliente: 'Ana Costa',\n      mensagem: 'Solicito segunda via da nota fiscal.',\n      documento: '45678901234'\n    }\n  },\n  {\n    _canal: 'whatsapp',\n    _teste: true,\n    _cenario: 'duplicado',\n    body: {\n      from: '5542999910001',\n      nome_cliente: 'João Silva',\n      mensagem: 'Solicito informações sobre meu pedido.',\n      documento: '12345678901'\n    }\n  },\n\n  // 4 registros do Portal\n  ...[\n    { Cliente: 'Pedro Alves', Fone: '42999910005', Email: 'pedro@email.com', CNPJ: '12345678000190', mensagem: 'Solicitação de atendimento' },\n    { Cliente: 'Lucas Rocha', Fone: '42999910006', Email: 'lucas@email.com', CNPJ: '23456789000190', mensagem: 'Dúvida sobre faturamento' },\n    { Cliente: 'Fernanda Lima', Fone: '42999910007', Email: 'fernanda@email.com', CNPJ: '34567890000190', mensagem: 'Solicitação de orçamento' },\n    { Cliente: 'Roberto Dias', Fone: '42999910008', Email: 'roberto@email.com', CNPJ: '', mensagem: 'Cadastro incompleto' }\n  ].map((body, i) => ({\n    _canal: 'portal',\n    _teste: true,\n    _cenario: i === 3 ? 'invalido' : 'portal',\n    body\n  })),\n\n  // 1 E-mail\n  {\n    _canal: 'email',\n    _teste: true,\n    _cenario: 'email',\n    body: {\n      from: 'Juliana Martins <juliana@email.com>',\n      subject: 'Solicitação de atendimento',\n      text: 'Gostaria de receber informações sobre meu contrato.',\n      documento: '56789012345'\n    }\n  },\n\n  // 1 arquivo CSV com 4 linhas\n  {\n    _canal: 'arquivo',\n    _teste: true,\n    _cenario: 'csv',\n    body: {\n      nome_arquivo: 'clientes_teste.csv',\n      tipo_arquivo: 'csv',\n      conteudo: `CLIENTE;CNPJ;NF;TELEFONE;EMAIL\nEmpresa Alfa;11111111000111;1001;42999910009;alfa@email.com\nEmpresa Beta;22222222000122;1002;42999910010;beta@email.com\nEmpresa Gama;33333333000133;1003;42999910011;gama@email.com\nEmpresa Delta;;;;`\n    }\n  },\n\n  // 1 arquivo TXT\n  {\n    _canal: 'arquivo',\n    _teste: true,\n    _cenario: 'txt',\n    body: {\n      nome_arquivo: 'solicitacao.txt',\n      tipo_arquivo: 'txt',\n      conteudo: `Nome: Marcos Oliveira\nTelefone: 42999910012\nEmail: marcos@email.com\nDocumento: 67890123456\nMensagem: Solicitação de atualização cadastral`\n    }\n  },\n\n  // 1 PDF simulado: texto já extraído\n  {\n    _canal: 'arquivo_pdf',\n    _teste: true,\n    _cenario: 'pdf',\n    nome_arquivo: 'solicitacao.pdf',\n    text: `Nome: Patricia Gomes\nTelefone: 42999910013\nEmail: patricia@email.com\nDocumento: 78901234567\nMensagem: Solicitação de análise de contrato`\n  }\n];\n\nreturn dados.map(item => ({\n  json: {\n    ...item,\n    _crm_simulado: true\n  }\n}));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        128,
+        1328
+      ],
+      "id": "83adaf8e-d1ee-493a-8f06-f9aa57e36dc5",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Arquivo PDF": {
+      "main": [
+        [
+          {
+            "node": "Extrair Texto do PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Consolidar e Extrair",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook E-mail": {
+      "main": [
+        [
+          {
+            "node": "Consolidar e Extrair",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Portal": {
+      "main": [
+        [
+          {
+            "node": "Consolidar e Extrair",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrair Texto do PDF": {
+      "main": [
+        [
+          {
+            "node": "Consolidar e Extrair",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Arquivo TXT/CSV": {
+      "main": [
+        [
+          {
+            "node": "Consolidar e Extrair",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Teste Manual": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consolidar e Extrair": {
+      "main": [
+        [
+          {
+            "node": "Mapear Campos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mapear Campos": {
+      "main": [
+        [
+          {
+            "node": "Auditar e Validar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auditar e Validar": {
+      "main": [
+        [
+          {
+            "node": "Registro Válido?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registro Válido?": {
+      "main": [
+        [
+          {
+            "node": "Normalizar Dados",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gravar Pendência (PostgreSQL)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar Dados": {
+      "main": [
+        [
+          {
+            "node": "Classificar por Regras",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classificar por Regras": {
+      "main": [
+        [
+          {
+            "node": "Consultar CRM (GET) - PENDENTE DE CONFIGURAÇÃO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar CRM (GET) - PENDENTE DE CONFIGURAÇÃO": {
+      "main": [
+        [
+          {
+            "node": "Integrar CRM e Unificar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Integrar CRM e Unificar": {
+      "main": [
+        [
+          {
+            "node": "Gravar no HUB (PostgreSQL)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gravar no HUB (PostgreSQL)": {
+      "main": [
+        [
+          {
+            "node": "Rotear por Setor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rotear por Setor": {
+      "main": [
+        [
+          {
+            "node": "Notificar Setor",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notificar Setor",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notificar Setor",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notificar Setor",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notificar Setor",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notificar Setor",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notificar Setor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IA 2 - Preparar e Separar": {
+      "main": [
+        [
+          {
+            "node": "IA 3 - Treinar Árvore (Gini)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IA 3 - Treinar Árvore (Gini)": {
+      "main": [
+        [
+          {
+            "node": "IA 4 - Avaliar, Classificar e Montar Resultado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IA 4 - Avaliar, Classificar e Montar Resultado": {
+      "main": [
+        [
+          {
+            "node": "IA 5 - Tela de Resultado (Form Ending)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IA 1 - Gerar Base Sintética e Receber Demanda": {
+      "main": [
+        [
+          {
+            "node": "IA 2 - Preparar e Separar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IA Formulário - Nova Demanda": {
+      "main": [
+        [
+          {
+            "node": "IA 1 - Gerar Base Sintética e Receber Demanda",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Consolidar e Extrair",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "3be0ca43-a30f-4aae-8d86-76bc136cdc2b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8388e588304bdc07f8c96926123282ccaa075c903e68e9e28797b428522b5ffa"
+  },
+  "nodeGroups": [],
+  "id": "AfPee2lsh42BKHeC",
+  "tags": []
+}

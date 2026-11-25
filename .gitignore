@@ -1,0 +1,19 @@
+.env
+node_modules/
+app/node_modules/
+*.log
+.DS_Store
+__pycache__/
+
+# Backups e banco local
+backups/
+*.dump
+*.backup
+
+# Dependências
+**/node_modules/
+
+# Arquivos de ambiente
+.env
+.env.*
+!.env.example

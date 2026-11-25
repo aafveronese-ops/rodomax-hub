@@ -1,0 +1,17 @@
+# OPCIONAL: sobe SOMENTE a aplicação web em um container novo, na rede já existente
+# "rodomax-network". NÃO recria nem altera os containers n8n, n8n-runners e PostgreSQL.
+#   docker compose -f docker-compose.app.yml up -d --build
+services:
+  rodomax-web:
+    build: ./app
+    container_name: rodomax-web
+    ports:
+      - "3000:3000"
+    env_file: .env
+    environment:
+      N8N_BASE_URL: http://n8n:5678   # nome do container do n8n na rede rodomax-network
+    restart: unless-stopped
+    networks: [rodomax-network]
+networks:
+  rodomax-network:
+    external: true

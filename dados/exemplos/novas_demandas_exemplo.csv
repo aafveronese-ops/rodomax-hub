@@ -1,0 +1,10 @@
+tipo_demanda;nome;produto;uf_origem;destino;distancia_km;frete_ton;saldo_ton;balanca;estrada_chao_km;antecedencia_h;descricao
+logistica;Cooperativa Exemplo A;SOJA;PR;Paranagua;540;150;2400;25m;0;80;
+logistica;Cooperativa Exemplo B;MILHO;PR;Paranagua;600;95;3000;20m;18;20;
+logistica;Cooperativa Exemplo C;MILHO;MS;Paranagua;1050;260;1500;sem_restricao;0;60;
+logistica;Cooperativa Exemplo D;SOJA;PR;Toledo;300;60;900;30m;12;36;
+logistica;Cooperativa Exemplo E;SOJA;MS;Maringa;650;170;2000;25m;3;90;
+geral;Transportadora Exemplo F;;;;;;;;;;Solicito orçamento para contrato anual de transporte
+geral;Fornecedor Exemplo G;;;;;;;;;;Pneu furado na carreta, precisamos de manutenção
+logistica;Cooperativa Exemplo H;SOJA;XX;Paranagua;abc;150;2400;99m;0;80;
+logistica;Cooperativa Exemplo A;SOJA;PR;Paranagua;540;150;2400;25m;0;80;

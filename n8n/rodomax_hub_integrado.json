@@ -1,0 +1,2843 @@
+{
+  "name": "RODOMAX HUB - Integrado (versão final)",
+  "nodes": [
+    {
+      "id": "3f9ca51d-3a22-5501-aa88-c79816bd101c",
+      "name": "Nota 01 - RODOMAX HUB — WORKFLOW CENTRAL ÚNICO",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -420,
+        -1420
+      ],
+      "parameters": {
+        "content": "## RODOMAX HUB — WORKFLOW CENTRAL ÚNICO\nProjeto acadêmico (Data Science e IA). Um único canvas recebe TODOS os canais, valida, separa **demandas gerais** (classificação por regras) de **demandas logísticas** (IA CART/Gini), grava no PostgreSQL e responde pelo canal de origem.\n\nBlocos: 1 Entradas · 2 Consolidação · 3 Mapeamento · 4 Validação · 5 Direcionamento · 6A Gerais · 6B Logísticas/IA · 7 PostgreSQL · 8 Respostas · 9 Consultas · 10 Erros/Testes.\n\nO workflow \"ultimo\" (1ª etapa) foi preservado; a lógica válida dele foi reaproveitada aqui.",
+        "width": 900,
+        "height": 340,
+        "color": 6
+      }
+    },
+    {
+      "id": "8167f97c-952a-5b1c-ae66-ac2084fe1a34",
+      "name": "Nota 02 - 1 · ENTRADAS",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -420,
+        -1040
+      ],
+      "parameters": {
+        "content": "## 1 · ENTRADAS\nTelegram (via conector do backend), E-mail (IMAP — **desativado até configurar a credencial**), Web (formulários), PDF e CSV (uploads da aplicação web).\n\n**Portal**: canal apenas demonstrativo (sem integração nesta versão). **WhatsApp**: substituído pelo Telegram.",
+        "width": 300,
+        "height": 2260,
+        "color": 7
+      }
+    },
+    {
+      "id": "8dfe8187-06fa-5f41-a322-8a0c3c33f528",
+      "name": "Nota 03 - Telegram — conversa progressiva",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        -1040
+      ],
+      "parameters": {
+        "content": "## Telegram — conversa progressiva\nRecebe o Update do Telegram. Estado da conversa em `telegram_conversas`. Comandos: /start, /ajuda, /cancelar.",
+        "width": 1200,
+        "height": 300,
+        "color": 4
+      }
+    },
+    {
+      "id": "acd8327d-2ca6-5b70-a928-65d3ebbbdeef",
+      "name": "Nota 04 - E-mail (IMAP + SMTP)",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        -620
+      ],
+      "parameters": {
+        "content": "## E-mail (IMAP + SMTP)\nGatilho e envio **desativados por padrão**: configure as credenciais (Gmail + senha de app) e ative os dois nodes. Respostas automáticas (no-reply) são ignoradas para evitar laços.",
+        "width": 1200,
+        "height": 300,
+        "color": 4
+      }
+    },
+    {
+      "id": "342fbf16-4d15-5b5a-aaca-95e9c3c80e1d",
+      "name": "Nota 05 - Web — formulários",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        -140
+      ],
+      "parameters": {
+        "content": "## Web — formulários\nFormulários de frete e de demanda geral da aplicação web (backend → este webhook).",
+        "width": 1200,
+        "height": 280,
+        "color": 4
+      }
+    },
+    {
+      "id": "3200f3d8-fc5f-5f0b-a4ce-559a9d55159c",
+      "name": "Nota 06 - PDF — extração de texto",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        240
+      ],
+      "parameters": {
+        "content": "## PDF — extração de texto\nPDF convencional: texto extraído pelo n8n. PDF escaneado/sem texto é informado ao usuário (sem OCR, nada é inventado).",
+        "width": 1200,
+        "height": 300,
+        "color": 4
+      }
+    },
+    {
+      "id": "7c1a4784-c533-52a2-af6a-8146cef4de39",
+      "name": "Nota 07 - CSV — dois tipos de importação",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        620
+      ],
+      "parameters": {
+        "content": "## CSV — dois tipos de importação\n**historico**: base rotulada (com `atendida`) → só treino/avaliação da IA.\n**novas_demandas**: cada linha vira uma demanda (sem `atendida`: é o que a IA prevê).",
+        "width": 1700,
+        "height": 340,
+        "color": 4
+      }
+    },
+    {
+      "id": "b6b8bba5-dfe7-5421-ab52-b1e3a6ca3505",
+      "name": "Nota 08 - 2-4 · CONSOLIDAR · MAPEAR · IDENTIFICAR · VALIDAR",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1440,
+        -260
+      ],
+      "parameters": {
+        "content": "## 2-4 · CONSOLIDAR · MAPEAR · IDENTIFICAR · VALIDAR\nEnvelope padrão para todos os canais → sinônimos de campos e extração do texto livre → **geral x logística** → auditoria e validação (valida / pendente / rejeitada).",
+        "width": 1060,
+        "height": 420,
+        "color": 5
+      }
+    },
+    {
+      "id": "d36a4327-6648-5261-a4e0-f7e671829839",
+      "name": "Nota 09 - 5 · DIRECIONAMENTO",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2520,
+        -260
+      ],
+      "parameters": {
+        "content": "## 5 · DIRECIONAMENTO\nTelegram incompleto → pergunta o próximo dado.\nGeral → 6A · Logística → 6B · Pendente/Rejeitada → registro direto.",
+        "width": 300,
+        "height": 420,
+        "color": 3
+      }
+    },
+    {
+      "id": "96079a4d-e104-5549-a211-e9c01f4c97d4",
+      "name": "Nota 10 - 6A · DEMANDAS GERAIS",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2860,
+        -560
+      ],
+      "parameters": {
+        "content": "## 6A · DEMANDAS GERAIS\nNormalização + classificação **por regras** (palavras-chave → setor). Não é IA e não usa a árvore.",
+        "width": 560,
+        "height": 300,
+        "color": 5
+      }
+    },
+    {
+      "id": "5f29b50f-4644-5b3d-ab5b-69c1e6520438",
+      "name": "Nota 11 - 6B · DEMANDAS LOGÍSTICAS — IA",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2860,
+        120
+      ],
+      "parameters": {
+        "content": "## 6B · DEMANDAS LOGÍSTICAS — IA\nAtributos no formato do dataset → modelo ATIVO do banco → **árvore CART (Gini)** → previsão + explicação (caminho na árvore). Previsão experimental.",
+        "width": 820,
+        "height": 320,
+        "color": 2
+      }
+    },
+    {
+      "id": "d4927f88-b543-52bf-afc5-c84779a605ee",
+      "name": "Nota 12 - Telegram: coleta de dados",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2860,
+        -1040
+      ],
+      "parameters": {
+        "content": "## Telegram: coleta de dados\nFaltou dado ou valor inválido: o bot guarda o que já recebeu e pergunta UM campo por vez.",
+        "width": 820,
+        "height": 300,
+        "color": 3
+      }
+    },
+    {
+      "id": "970eb576-32f0-50a1-a0d3-f9dc8f77ab32",
+      "name": "Nota 13 - 7 · POSTGRESQL",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3720,
+        -260
+      ],
+      "parameters": {
+        "content": "## 7 · POSTGRESQL\nMerge une os 3 caminhos → registro único → `hub_registrar_demanda()` gera o protocolo **RDM-000000** e evita duplicidade (chave_evento). Falha do banco não gera protocolo falso.",
+        "width": 800,
+        "height": 420,
+        "color": 6
+      }
+    },
+    {
+      "id": "56f7e21a-4731-55a7-a588-ebb0ce12f12d",
+      "name": "Nota 14 - 8 · RESPOSTAS POR CANAL",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        4560,
+        -560
+      ],
+      "parameters": {
+        "content": "## 8 · RESPOSTAS POR CANAL\nMesmo conteúdo para todos os canais; muda só a entrega: tela web, Telegram, e-mail (SMTP) ou resumo do lote CSV. Falha no envio **não apaga** a demanda (status registrado).",
+        "width": 980,
+        "height": 1120,
+        "color": 6
+      }
+    },
+    {
+      "id": "f342a252-104c-53b9-a77e-5256104b56bc",
+      "name": "Nota 15 - 9 · CONSULTAS PARA O DASHBOARD",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        1060
+      ],
+      "parameters": {
+        "content": "## 9 · CONSULTAS PARA O DASHBOARD\nGET /webhook/rodomax/consulta?tipo=dashboard|demandas|demanda|arquivos|modelo — leitura via funções SQL. O navegador nunca acessa o banco.",
+        "width": 1300,
+        "height": 520,
+        "color": 5
+      }
+    },
+    {
+      "id": "6c59dc1e-02fa-565e-af74-75627a4bd879",
+      "name": "Nota 16 - IA · TREINAMENTO E AVALIAÇÃO (CART/Gini)",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        1620
+      ],
+      "parameters": {
+        "content": "## IA · TREINAMENTO E AVALIAÇÃO (CART/Gini)\nExecutado sob demanda (botão \"Treinar modelo\" na Central ou execução manual). Base: `ia_historico` (rodomax_demandas.csv). Treino/teste 80/20 estratificado (semente 42), profundidade por validação cruzada no treino, métricas no teste + linha de base. O modelo treinado vira o **modelo ativo** em `ia_modelos`.",
+        "width": 1960,
+        "height": 340,
+        "color": 2
+      }
+    },
+    {
+      "id": "ddd838ea-db4e-58e6-a377-bfa4e8899b48",
+      "name": "Nota 17 - 10 · ERROS E TESTES",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        1990
+      ],
+      "parameters": {
+        "content": "## 10 · ERROS E TESTES\nErros tratados: dados incompletos/inválidos (pendente/rejeitada), PDF ilegível, CSV vazio/sem colunas, IA sem modelo (status erro), falha no banco (erro técnico sem protocolo), falha de e-mail (registrada). Execução manual: treina o modelo e roda 6 casos de teste (ambiente \"teste\", fora do dashboard).",
+        "width": 1300,
+        "height": 260,
+        "color": 3
+      }
+    },
+    {
+      "id": "5f3410f0-18d8-55a5-a6b6-a01b55687da3",
+      "name": "Webhook Telegram",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        -900
+      ],
+      "webhookId": "576bd475-1e03-5098-a32a-906a07381e71",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "rodomax/telegram",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "ea9ae09a-27e0-519a-a626-ee3625429747",
+      "name": "Carregar Conversa Telegram",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        240,
+        -900
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT COALESCE((SELECT to_jsonb(c) FROM telegram_conversas c WHERE c.chat_id = $1::bigint), '{}'::jsonb) AS conversa;",
+        "options": {
+          "queryReplacement": "={{ [ $json.body?.message?.chat?.id ?? $json.body?.edited_message?.chat?.id ?? 0 ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "xRB358Nv1hfm25RQ",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "id": "fa3637d7-fd0b-5d55-a414-67dda586528d",
+      "name": "Interpretar Mensagem Telegram",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        -900
+      ],
+      "parameters": {
+        "jsCode": "// =====================================================================\n// BLOCO 1 | INTERPRETAR MENSAGEM DO TELEGRAM (conversa progressiva)\n// Recebe o \"Update\" do Telegram (mesmo formato da API oficial) + o estado da conversa\n// salvo no PostgreSQL. Decide a ação:\n//   \"ignorar\"   -> update repetido ou sem mensagem (nada a responder)\n//   \"responder\" -> comandos /start, /ajuda, /cancelar (resposta direta, sem demanda)\n//   \"processar\" -> monta o envelope e segue para o pipeline comum do HUB\n// A extração de campos NÃO é repetida aqui: o pipeline comum extrai, valida e, se faltar\n// dado, o node \"Perguntar Próximo Dado\" pede ao usuário UM campo por vez.\n// =====================================================================\n\nconst update = $('Webhook Telegram').first().json.body || {};\nconst conversa = $input.first().json.conversa || {};\nconst estado = conversa.estado || {};\nconst msg = update.message || update.edited_message || null;\n\nconst BOAS_VINDAS = [\n  'Olá! Aqui é o Rodomax HUB.',\n  '',\n  'Você pode enviar:',\n  '• um pedido de FRETE — ex.: \"Preciso transportar milho do PR para Toledo\"',\n  '• qualquer outra solicitação (financeiro, cadastro, atendimento...) — ex.: \"Preciso da segunda via do boleto\"',\n  '',\n  'Se faltar alguma informação, eu pergunto. Comandos: /cancelar (recomeçar) e /ajuda.',\n].join('\\n');\n\nconst saida = (dados) => [{ json: { update_id: update.update_id ?? null, ...dados } }];\n\nif (!msg || !msg.chat) return saida({ acao: 'ignorar', chat_id: null, texto: null, motivo: 'update sem mensagem' });\nconst chatId = msg.chat.id;\nif (conversa.ultimo_update && update.update_id && Number(update.update_id) <= Number(conversa.ultimo_update)) {\n  return saida({ acao: 'ignorar', chat_id: chatId, texto: null, motivo: 'update já processado (duplicado)' });\n}\nif (typeof msg.text !== 'string' || !msg.text.trim()) {\n  return saida({ acao: 'responder', chat_id: chatId, estado, texto: 'Por enquanto eu só entendo mensagens de texto. Descreva sua solicitação em uma mensagem.' });\n}\n\nconst textoMsg = msg.text.trim();\nconst comando = textoMsg.toLowerCase().split(/\\s|@/)[0];\nif (['/start', '/ajuda', '/help'].includes(comando)) return saida({ acao: 'responder', chat_id: chatId, estado: {}, texto: BOAS_VINDAS });\nif (/^(oi|ola|olá|opa|bom dia|boa tarde|boa noite|e ai|e aí|hello|hi)[!.?\\s]*$/i.test(textoMsg) && !estado.aguardando) return saida({ acao: 'responder', chat_id: chatId, estado: {}, texto: BOAS_VINDAS });\nif (['/cancelar', '/cancel'].includes(comando)) return saida({ acao: 'responder', chat_id: chatId, estado: {}, texto: 'Conversa cancelada. Quando quiser, envie uma nova solicitação.' });\n\n// ----- acumula a conversa -----\nconst nome = [msg.from?.first_name, msg.from?.last_name].filter(Boolean).join(' ') || msg.chat.title || 'Usuário do Telegram';\nconst campos = { ...(estado.campos || {}) };\nlet textos = [...(estado.textos || [])];\n// resposta curta a uma pergunta feita -> vale para o campo perguntado; texto longo -> vai para o texto livre\nif (estado.aguardando && textoMsg.length <= 40) campos[estado.aguardando] = textoMsg;\nelse textos.push(textoMsg);\ntextos = textos.slice(-10);\n\nreturn saida({\n  acao: 'processar',\n  chat_id: chatId,\n  envelope: {\n    canal: 'telegram',\n    chave_evento: `telegram:${update.update_id}`,\n    solicitante: { nome, telegram_chat_id: chatId, telegram_usuario: msg.from?.username || null },\n    tipo_informado: estado.tipo || null,\n    assunto: '',\n    texto: textos.join('\\n'),\n    campos_brutos: campos,\n    dados_originais: { mensagens: textos, respostas: campos, ultimo_update: update.update_id, de: { id: msg.from?.id, username: msg.from?.username || null } },\n    resposta: { via: 'telegram', chat_id: chatId, update_id: update.update_id },\n    telegram: { chat_id: chatId, update_id: update.update_id, estado_anterior: estado },\n  },\n});\n"
+      }
+    },
+    {
+      "id": "9124c8cf-896c-5e59-a77b-d8c65821a821",
+      "name": "Ação do Telegram",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        720,
+        -900
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "ac015cf0-b150-517f-ad8d-7c972a9e2822",
+                    "leftValue": "={{ $json.acao === 'processar' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Processar"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "110ac89c-0957-5db3-af53-57804e145c0a",
+                    "leftValue": "={{ $json.acao === 'responder' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Responder"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "e58de76f-f3dd-5def-a958-215ad5439af7",
+                    "leftValue": "={{ $json.acao === 'ignorar' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Ignorar"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "182237ce-556b-5acd-a521-c977a5b0067f",
+      "name": "Gatilho E-mail (IMAP)",
+      "type": "n8n-nodes-base.emailReadImap",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        -480
+      ],
+      "disabled": true,
+      "parameters": {
+        "mailbox": "INBOX",
+        "postProcessAction": "read",
+        "format": "simple",
+        "downloadAttachments": true,
+        "dataPropertyAttachmentsPrefixName": "attachment_",
+        "options": {
+          "customEmailConfig": "[\"UNSEEN\"]"
+        }
+      }
+    },
+    {
+      "id": "a4c5e72f-f384-5f4c-a38e-5312c8b55965",
+      "name": "Preparar E-mail",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        -480
+      ],
+      "parameters": {
+        "jsCode": "// =====================================================================\n// BLOCO 1 | PREPARAR E-MAIL RECEBIDO (Email Trigger IMAP — formato \"simple\")\n// • Lê remetente, assunto e corpo; preserva o conteúdo original.\n// • NÃO presume que todo e-mail é frete: o tipo é decidido depois (geral x logística).\n// • Ignora respostas automáticas (no-reply, mailer-daemon, \"Auto-Submitted\") para não\n//   criar laço de respostas entre robôs.\n// • Primeiro anexo PDF -> binário \"data\", para o node \"Extrair Texto do PDF\".\n// =====================================================================\n\nconst texto = (v) => (v === null || v === undefined ? '' : String(v));\n// \"Nome <email@x.com>\" -> { nome, email } (aceita também o formato \"resolved\" do n8n)\nfunction lerRemetente(from) {\n  if (from && typeof from === 'object' && Array.isArray(from.value)) return { nome: texto(from.value[0]?.name), email: texto(from.value[0]?.address) };\n  const m = texto(from).match(/^\\s*\"?([^\"<]*?)\"?\\s*<([^>]+)>\\s*$/);\n  return m ? { nome: m[1].trim(), email: m[2].trim() } : { nome: '', email: texto(from).trim() };\n}\nconst semHtml = (h) => texto(h).replace(/<style[\\s\\S]*?<\\/style>/gi, '').replace(/<br\\s*\\/?>/gi, '\\n').replace(/<\\/p>/gi, '\\n').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/[ \\t]+/g, ' ').trim();\n// TXT/PDF/e-mail: linhas \"Chave: valor\" viram campos\nfunction lerChaveValor(conteudo) {\n  const campos = {};\n  for (const linha of texto(conteudo).split(/\\r?\\n/)) {\n    const m = linha.match(/^\\s*([A-Za-zÀ-ÿ /()_-]{2,40}):\\s*(.+)$/);\n    if (m) campos[m[1].trim()] = m[2].trim();\n  }\n  return campos;\n}\n\nconst saida = [];\nfor (const item of $input.all()) {\n  const j = item.json;\n  const rem = lerRemetente(j.from);\n  const meta = j.metadata || j.headers || {};\n  const autoSubmitted = texto(meta['auto-submitted'] || '').toLowerCase();\n  const assunto = texto(j.subject).trim();\n  const corpo = (texto(j.textPlain || j.text).trim() || semHtml(j.textHtml || j.html)).slice(0, 10000);\n\n  // filtro anti-laço: mensagens automáticas não geram demanda nem resposta\n  if (/no-?reply|mailer-daemon|postmaster/i.test(rem.email) || (autoSubmitted && autoSubmitted !== 'no')) continue;\n\n  // primeiro anexo PDF vira o binário \"data\"\n  const binarios = item.binary || {};\n  const chavePdf = Object.keys(binarios).find((k) => /pdf/i.test(binarios[k].mimeType || '') || /\\.pdf$/i.test(binarios[k].fileName || ''));\n  const anexos = Object.values(binarios).map((b) => b.fileName).filter(Boolean);\n  const messageId = texto(meta['message-id'] || j.messageId || '').trim();\n\n  saida.push({\n    json: {\n      canal: 'email',\n      chave_evento: `email:${messageId || (rem.email + '|' + assunto + '|' + texto(j.date))}`,\n      solicitante: { nome: rem.nome, email: rem.email },\n      assunto,\n      texto: corpo,\n      campos_brutos: lerChaveValor(corpo),\n      dados_originais: { de: texto(j.from?.text || j.from), assunto, data: texto(j.date), corpo, anexos, message_id: messageId },\n      resposta: { via: 'email', email: rem.email, assunto: assunto ? `Re: ${assunto}` : 'Rodomax HUB — sua solicitação' },\n      tem_pdf: !!chavePdf,\n      arquivo: chavePdf ? { nome: binarios[chavePdf].fileName, mime: binarios[chavePdf].mimeType, finalidade: 'documento' } : null,\n    },\n    binary: chavePdf ? { data: binarios[chavePdf] } : undefined,\n  });\n}\nreturn saida;\n"
+      }
+    },
+    {
+      "id": "9233aa6c-0944-5023-ac25-e19dd744e798",
+      "name": "E-mail tem PDF?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        480,
+        -480
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "482b4e1e-d529-5718-ab5d-506041589cd5",
+              "leftValue": "={{ $json.tem_pdf === true }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "7dbd5158-63dd-5f55-a86e-236778e91951",
+      "name": "Webhook Demanda Web",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "46d7f1ea-15a9-5b1b-a0a9-cc0cf437eb2a",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "rodomax/demanda",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "85e60271-bbef-5524-a58a-42ee2a6e49cd",
+      "name": "Webhook Upload PDF",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        380
+      ],
+      "webhookId": "53512457-ec74-5448-aa28-25786ad8ee75",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "rodomax/upload-pdf",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "132e24f9-9229-5705-a684-6dbb3a658f42",
+      "name": "Receber PDF",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        380
+      ],
+      "parameters": {
+        "jsCode": "// =====================================================================\n// BLOCO 1 | RECEBER PDF\n// Duas origens chegam aqui:\n//   • Webhook Upload PDF (aplicação web): binário \"data\" + campos opcionais do formulário\n//   • Anexo PDF de e-mail (node \"Preparar E-mail\"): já é um envelope de canal \"email\"\n// Confere nome/tipo do arquivo e repassa o binário para a extração de texto.\n// =====================================================================\n\nconst texto = (v) => (v === null || v === undefined ? '' : String(v));\nreturn $input.all().map((item, i) => {\n  const j = item.json;\n  const bin = (item.binary || {}).data;\n  if (j.canal === 'email') return { json: j, binary: item.binary, pairedItem: { item: i } };\n\n  const b = j.body || {};\n  const nome = bin ? texto(bin.fileName) : '';\n  const ehPdf = !!bin && (/pdf/i.test(texto(bin.mimeType)) || /\\.pdf$/i.test(nome));\n  return {\n    json: {\n      canal: 'pdf',\n      chave_evento: b.id_requisicao ? `pdf:${b.id_requisicao}` : null,\n      solicitante: { nome: texto(b.nome).trim(), email: texto(b.email).trim(), telefone: texto(b.telefone).trim() },\n      tipo_informado: b.tipo_demanda || null,\n      assunto: '',\n      texto: '',\n      campos_brutos: {},\n      dados_originais: {},\n      resposta: { via: 'http' },\n      arquivo: { nome: nome || 'sem_nome.pdf', mime: bin ? bin.mimeType : null, tamanho: b.tamanho_bytes || null, finalidade: 'documento', eh_pdf: ehPdf },\n    },\n    binary: item.binary,\n    pairedItem: { item: i },\n  };\n});\n"
+      }
+    },
+    {
+      "id": "ffd45542-0977-5c5d-a92d-5873549c5ae9",
+      "name": "Extrair Texto do PDF",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        480,
+        380
+      ],
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true,
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "data",
+        "options": {}
+      }
+    },
+    {
+      "id": "16e17a66-1ab3-5238-aaa4-80596a7045c0",
+      "name": "Ler Texto do PDF",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        380
+      ],
+      "parameters": {
+        "jsCode": "// =====================================================================\n// BLOCO 3 | LER TEXTO DO PDF\n// Junta o texto extraído (node \"Extrair Texto do PDF\") ao envelope de origem.\n// • PDF sem texto (escaneado/imagem) ou corrompido: a situação é informada e NADA\n//   é inventado. OCR não faz parte desta versão.\n// • Linhas \"Chave: valor\" viram campos; o restante vira texto livre (extraído depois).\n// Saída: { arquivo_registro (para hub_arquivos), envelope (segue no pipeline) }\n// =====================================================================\n\nconst texto = (v) => (v === null || v === undefined ? '' : String(v));\nfunction lerChaveValor(conteudo) {\n  const campos = {};\n  for (const linha of texto(conteudo).split(/\\r?\\n/)) {\n    const m = linha.match(/^\\s*([A-Za-zÀ-ÿ /()_-]{2,40}):\\s*(.+)$/);\n    if (m) campos[m[1].trim()] = m[2].trim();\n  }\n  return campos;\n}\n\nconst origens = $('Receber PDF').all();\nreturn $input.all().map((item, i) => {\n  const env = { ...origens[i].json };\n  const ext = item.json || {};\n  const erro = ext.error ? texto(ext.error.message || ext.error) : null;\n  const conteudo = texto(ext.text).replace(/\\u0000/g, '').trim();\n  const legivel = !erro && conteudo.replace(/\\s/g, '').length >= 10;\n  const status = erro ? 'erro' : legivel ? 'recebido' : 'sem_texto';\n  const detalhe = erro ? `Falha na extração: ${erro}` : legivel ? `${ext.numpages || '?'} página(s), ${conteudo.length} caracteres extraídos`\n    : 'PDF sem texto extraível (provavelmente escaneado/imagem). OCR não faz parte desta versão.';\n\n  const campos = legivel ? lerChaveValor(conteudo) : {};\n  if (env.canal === 'email') {\n    // e-mail: o texto do anexo complementa o corpo da mensagem\n    if (legivel) { env.texto = [env.texto, conteudo].filter(Boolean).join('\\n\\n'); env.campos_brutos = { ...campos, ...env.campos_brutos }; }\n    env.dados_originais = { ...env.dados_originais, texto_anexo_pdf: legivel ? conteudo.slice(0, 5000) : null };\n  } else {\n    env.texto = conteudo.slice(0, 10000);\n    env.campos_brutos = campos;\n    env.dados_originais = { arquivo: env.arquivo.nome, texto_extraido: conteudo.slice(0, 5000), formulario: env.solicitante };\n  }\n  env.eventos = [{ etapa: 'pdf', detalhe: `${env.arquivo.nome}: ${detalhe}` }];\n  env.pdf_legivel = env.canal === 'email' ? true : legivel;   // e-mail ainda tem o corpo da mensagem\n  env.pdf_detalhe = detalhe;\n\n  return {\n    json: {\n      arquivo_registro: {\n        nome_arquivo: env.arquivo.nome, tipo_arquivo: 'pdf', finalidade: 'documento', canal: env.canal,\n        tamanho_bytes: Number(env.arquivo.tamanho) || null,\n        registros_total: legivel ? 1 : 0, status, texto_extraido: legivel ? conteudo : null, detalhe,\n      },\n      envelope: env,\n    },\n    pairedItem: { item: i },\n  };\n});\n"
+      }
+    },
+    {
+      "id": "03a4d4e2-3eef-576b-a46d-0f2641b7058b",
+      "name": "Registrar Arquivo PDF",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        960,
+        380
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT ($2::jsonb || hub_registrar_arquivo($1::jsonb)) AS envelope;",
+        "options": {
+          "queryReplacement": "={{ [ JSON.stringify($json.arquivo_registro), JSON.stringify($json.envelope) ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "xRB358Nv1hfm25RQ",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "id": "f302d79e-7c3c-5f3e-accc-386e80a8066c",
+      "name": "PDF Legível?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1200,
+        380
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "8c09cc97-e8ae-5979-a2c3-64ec99e92fcc",
+              "leftValue": "={{ $json.envelope.pdf_legivel === true }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "e709d7bf-1054-5d29-a1f3-6c005fc7eb0b",
+      "name": "Responder PDF Ilegível",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1440,
+        520
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: false, situacao: 'sem_texto', arquivo_id: $json.envelope.arquivo_id, nome_arquivo: $json.envelope.arquivo.nome, mensagem: $json.envelope.pdf_detalhe } }}",
+        "options": {
+          "responseCode": 422
+        }
+      }
+    },
+    {
+      "id": "734a3f16-127e-566f-a8f6-603356fe4154",
+      "name": "Webhook Upload CSV",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        760
+      ],
+      "webhookId": "e930a523-60cb-5f90-a3d7-a00c08ec7837",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "rodomax/upload-csv",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "2d94c93d-dfce-527d-a3e8-097894091b0f",
+      "name": "Ler CSV",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        760
+      ],
+      "parameters": {
+        "jsCode": "// =====================================================================\n// BLOCO 3 | LER CSV  (evolução do leitor de CSV da 1ª etapa)\n// • Detecta o separador (; , ou TAB) pelo cabeçalho e respeita aspas (inclusive quebras de linha).\n// • Cabeçalhos são padronizados (\"Distância (km)\" -> \"distancia_km\").\n// • Distingue a FINALIDADE da importação (escolhida na interface):\n//     \"historico\"       -> base ROTULADA para treino/avaliação: exige a coluna \"atendida\"\n//     \"novas_demandas\"  -> demandas novas para processamento: \"atendida\" NÃO é exigida\n//                          (se vier, é ignorada, pois é exatamente o que a IA vai prever)\n// • 1 arquivo = 1 lote: registros_total conta LINHAS de dados, não arquivos.\n// Saída: { arquivo_registro (hub_arquivos), envelope (linhas + metadados) }\n// =====================================================================\n\nconst texto = (v) => (v === null || v === undefined ? '' : String(v));\nconst chave = (k) => String(k).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');\nfunction fnv(txt, seed) { let h = seed; for (const ch of txt) { h ^= ch.codePointAt(0); h = Math.imul(h, 0x01000193) >>> 0; } return h.toString(16).padStart(8, '0'); }\nconst hash = (txt) => fnv(txt, 0x811c9dc5) + fnv(txt, 0x9747b28c);\n\nconst COLUNAS_HISTORICO = ['produto', 'uf_origem', 'destino', 'distancia_km', 'frete_ton', 'saldo_ton', 'balanca', 'estrada_chao_km', 'antecedencia_h', 'atendida'];\n\n// Parser CSV simples e correto: aspas duplas, \"\" escapado, separador e quebras de linha dentro de aspas\nfunction parseCsv(conteudo, sep) {\n  const linhas = []; let campo = ''; let linha = []; let aspas = false;\n  for (let i = 0; i < conteudo.length; i++) {\n    const ch = conteudo[i];\n    if (aspas) {\n      if (ch === '\"' && conteudo[i + 1] === '\"') { campo += '\"'; i++; }\n      else if (ch === '\"') aspas = false;\n      else campo += ch;\n    } else if (ch === '\"') aspas = true;\n    else if (ch === sep) { linha.push(campo); campo = ''; }\n    else if (ch === '\\n' || ch === '\\r') {\n      if (ch === '\\r' && conteudo[i + 1] === '\\n') i++;\n      linha.push(campo); campo = '';\n      if (linha.some((c) => c.trim() !== '')) linhas.push(linha);\n      linha = [];\n    } else campo += ch;\n  }\n  linha.push(campo);\n  if (linha.some((c) => c.trim() !== '')) linhas.push(linha);\n  return linhas;\n}\n\nconst b = $input.first().json.body || {};\nconst nome = texto(b.nome_arquivo).trim() || 'sem_nome.csv';\nconst finalidade = ['historico', 'novas_demandas'].includes(b.finalidade) ? b.finalidade : null;\nconst conteudo = texto(b.conteudo).replace(/^\\uFEFF/, '');   // remove BOM do Excel\nconst primeira = conteudo.split(/\\r?\\n/)[0] || '';\nconst contagem = { ';': (primeira.match(/;/g) || []).length, ',': (primeira.match(/,/g) || []).length, '\\t': (primeira.match(/\\t/g) || []).length };\nconst sep = Object.keys(contagem).sort((x, y) => contagem[y] - contagem[x])[0];\n\nlet erro = null; let aviso = null;\nconst tabela = conteudo.trim() ? parseCsv(conteudo, sep) : [];\nconst cabecalhos = (tabela[0] || []).map((c) => chave(c));\nconst linhas = tabela.slice(1).map((v, i) => ({ linha: i + 2, campos: Object.fromEntries(cabecalhos.map((c, k) => [c, texto(v[k]).trim()])) }));\n\nif (!finalidade) erro = 'Finalidade da importação não informada (use \"historico\" ou \"novas_demandas\").';\nelse if (!conteudo.trim()) erro = 'Arquivo CSV vazio.';\nelse if (cabecalhos.length < 2) erro = 'Não foi possível identificar colunas: verifique o separador (; ou ,).';\nelse if (!linhas.length) erro = 'CSV sem linhas de dados (apenas cabeçalho).';\nelse if (finalidade === 'historico') {\n  const faltam = COLUNAS_HISTORICO.filter((c) => !cabecalhos.includes(c));\n  if (faltam.length) erro = `Base histórica precisa das colunas: ${faltam.join(', ')}. Para demandas novas (sem \"atendida\"), escolha a finalidade \"Novas demandas\".`;\n} else if (cabecalhos.includes('atendida')) {\n  aviso = 'A coluna \"atendida\" foi recebida em demandas novas e será ignorada (é o que a IA prevê). Para treinar o modelo, importe como \"Base histórica\".';\n}\n\nconst detalhe = erro || [`${linhas.length} linha(s) de dados, separador \"${sep === '\\t' ? 'TAB' : sep}\"`, aviso].filter(Boolean).join('. ');\nreturn [{ json: {\n  arquivo_registro: {\n    nome_arquivo: nome, tipo_arquivo: 'csv', finalidade: finalidade || 'novas_demandas', canal: 'web',\n    tamanho_bytes: Number(b.tamanho_bytes) || conteudo.length, hash_conteudo: hash(conteudo), separador: sep === '\\t' ? 'TAB' : sep,\n    cabecalhos, registros_total: linhas.length, status: erro ? 'erro' : 'recebido', detalhe,\n  },\n  envelope: {\n    csv_ok: !erro, erro, aviso, finalidade, nome_arquivo: nome, separador: sep, cabecalhos,\n    hash_conteudo: hash(conteudo), linhas, solicitante: { nome: texto(b.nome).trim(), email: texto(b.email).trim() },\n  },\n} }];\n"
+      }
+    },
+    {
+      "id": "f3558729-c5c5-592e-a5a7-c21031d87518",
+      "name": "Registrar Arquivo CSV",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        480,
+        760
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT ($2::jsonb || hub_registrar_arquivo($1::jsonb)) AS envelope;",
+        "options": {
+          "queryReplacement": "={{ [ JSON.stringify($json.arquivo_registro), JSON.stringify($json.envelope) ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "xRB358Nv1hfm25RQ",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "id": "82ecea39-b63d-50bf-a957-5273e3a6e63a",
+      "name": "Finalidade do CSV",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        720,
+        760
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "a2606d6b-f0fb-5c1f-a581-0708381d2739",
+                    "leftValue": "={{ $json.envelope.csv_ok !== true }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Erro no arquivo"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "d141ad94-c3da-5263-ab69-3177afbbb5ae",
+                    "leftValue": "={{ $json.envelope.finalidade === 'historico' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Base histórica"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "7d4fe7c1-97fa-56cb-ab58-7ed6ba7b5558",
+                    "leftValue": "={{ $json.envelope.finalidade === 'novas_demandas' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Novas demandas"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "cb25125a-e74f-5fef-a76b-d2ec86deb254",
+      "name": "Responder CSV com Erro",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        960,
+        940
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: false, arquivo_id: $json.envelope.arquivo_id, nome_arquivo: $json.envelope.nome_arquivo, erro: $json.envelope.erro } }}",
+        "options": {
+          "responseCode": 422
+        }
+      }
+    },
+    {
+      "id": "386a9c93-c2eb-5247-a5b5-9e24d6827573",
+      "name": "Validar Base Histórica",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        760
+      ],
+      "parameters": {
+        "jsCode": "// =====================================================================\n// BLOCO IA | VALIDAR BASE HISTÓRICA (CSV com finalidade \"historico\")\n// Confere cada linha antes de gravar em ia_historico. Os valores NÃO são alterados\n// (só convertidos para número/minúsculas onde o tipo exige). Linhas com problema são\n// rejeitadas e CONTADAS, com o motivo — nunca descartadas em silêncio.\n// =====================================================================\n\nconst env = $input.first().json.envelope;\nconst NUM = ['distancia_km', 'frete_ton', 'saldo_ton', 'estrada_chao_km', 'antecedencia_h'];\nconst TXT = ['produto', 'uf_origem', 'destino', 'balanca'];\nconst validos = []; const rejeitados = []; const ids = new Set();\n\nfor (const { linha, campos: c } of env.linhas) {\n  const motivos = [];\n  const id = Number(c.id_demanda);\n  if (!Number.isInteger(id) || id <= 0) motivos.push('id_demanda ausente ou inválido');\n  else if (ids.has(id)) motivos.push(`id_demanda ${id} repetido no arquivo`);\n  const reg = { id_demanda: id, canal: c.canal || null, status_agendamento: c.status_agendamento || null };\n  for (const k of NUM) {\n    const v = c[k] === '' || c[k] === undefined ? NaN : Number(String(c[k]).replace(',', '.'));\n    if (Number.isNaN(v) || v < 0) motivos.push(`${k} inválido: \"${c[k] ?? ''}\"`); else reg[k] = v;\n  }\n  for (const k of TXT) { if (!c[k]) motivos.push(`${k} ausente`); else reg[k] = c[k]; }\n  const at = String(c.atendida || '').trim().toLowerCase();\n  if (!['sim', 'nao'].includes(at)) motivos.push(`atendida deve ser \"sim\" ou \"nao\": \"${c.atendida ?? ''}\"`); else reg.atendida = at;\n\n  if (motivos.length) rejeitados.push({ linha, motivos });\n  else { validos.push(reg); ids.add(id); }\n}\n\nreturn [{ json: {\n  arquivo_id: env.arquivo_id,\n  nome_arquivo: env.nome_arquivo,\n  registros: validos,\n  total_linhas: env.linhas.length,\n  rejeitados: rejeitados.length,\n  exemplos_rejeicao: rejeitados.slice(0, 20),\n} }];\n"
+      }
+    },
+    {
+      "id": "1492f4e4-9298-5816-a1b8-2d3907234ceb",
+      "name": "Importar Base Histórica",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1200,
+        760
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT hub_importar_historico($1::int, $2::jsonb, $3::int, $4::jsonb) AS r;",
+        "options": {
+          "queryReplacement": "={{ [ $json.arquivo_id, JSON.stringify($json.registros), $json.rejeitados, JSON.stringify($json.exemplos_rejeicao) ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "xRB358Nv1hfm25RQ",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "id": "96be2891-8cd8-5efc-ae50-50d0748d6888",
+      "name": "Responder Importação Histórica",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1440,
+        760
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, finalidade: 'historico', nome_arquivo: $('Validar Base Histórica').first().json.nome_arquivo, linhas_lidas: $('Validar Base Histórica').first().json.total_linhas, ...$json.r } }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "f605bc34-b168-5eee-a43e-d89fd275a072",
+      "name": "Expandir Linhas do CSV",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        580
+      ],
+      "parameters": {
+        "jsCode": "// =====================================================================\n// BLOCO 2 | EXPANDIR LINHAS DO CSV (finalidade \"novas_demandas\")\n// Cada linha do arquivo vira UMA solicitação (envelope) que segue o pipeline comum.\n// O vínculo com o arquivo (arquivo_id + número da linha) é preservado.\n// A coluna \"atendida\", se existir, NÃO é usada como atributo (ver Auditar e Validar).\n// =====================================================================\n\nconst env = $input.first().json.envelope;\nreturn env.linhas.map((l, i) => ({\n  json: {\n    canal: 'csv',\n    // mesmo conteúdo reenviado => mesma chave => não duplica (o registro original é mantido)\n    chave_evento: `csv:${env.hash_conteudo}:${l.linha}`,\n    solicitante: { nome: env.solicitante?.nome || '', email: env.solicitante?.email || '' },\n    tipo_informado: l.campos.tipo_demanda || null,\n    assunto: '',\n    texto: '',\n    campos_brutos: l.campos,\n    dados_originais: { arquivo: env.nome_arquivo, linha: l.linha, colunas: l.campos },\n    arquivo_id: env.arquivo_id,\n    linha_arquivo: l.linha,\n    resposta: { via: 'lote' },\n  },\n  pairedItem: { item: 0 },\n}));\n"
+      }
+    },
+    {
+      "id": "fc346520-5648-5593-a969-8f61ffb9a8e4",
+      "name": "Consolidar Entrada",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1480,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// =====================================================================\n// BLOCO 2 | CONSOLIDAR ENTRADA  (adaptado do node \"Consolidar e Extrair\" da 1ª etapa)\n// Recebe itens de TODOS os canais e devolve um ENVELOPE PADRÃO por solicitação:\n//   { canal, chave_evento, recebido_em, ambiente, solicitante, tipo_informado,\n//     assunto, texto, campos_brutos, dados_originais, arquivo_id, linha_arquivo,\n//     finalidade, resposta, eventos }\n// • Itens do Telegram, e-mail, PDF, CSV e testes já chegam com \"canal\" (montados\n//   pelos nodes de cada canal). Itens sem \"canal\" vieram do Webhook da aplicação web.\n// • Nada é descartado aqui: entradas vazias seguem e serão tratadas na validação.\n// • O conteúdo original é preservado em \"dados_originais\".\n// =====================================================================\n\nconst texto = (v) => (v === null || v === undefined ? '' : String(v));\n\n// Hash FNV-1a (2 sementes = 64 bits) — mesma função da 1ª etapa, usada para chaves determinísticas\nfunction fnv(txt, seed) {\n  let h = seed;\n  for (const ch of txt) { h ^= ch.codePointAt(0); h = Math.imul(h, 0x01000193) >>> 0; }\n  return h.toString(16).padStart(8, '0');\n}\nconst hash = (txt) => fnv(txt, 0x811c9dc5) + fnv(txt, 0x9747b28c);\n\n// Corpo do webhook como objeto (aceita JSON ou texto puro)\nfunction corpo(json) {\n  let b = json.body;\n  if (typeof b === 'string') { try { b = JSON.parse(b); } catch (e) { b = { mensagem: b }; } }\n  return b && typeof b === 'object' && !Array.isArray(b) ? b : {};\n}\n\nconst agora = new Date().toISOString();\n\nreturn $input.all().map((item, i) => {\n  let j = item.json;\n  if (j.envelope && typeof j.envelope === 'object') j = j.envelope;   // vindo do node PostgreSQL de arquivo\n\n  let env;\n  if (j.canal) {\n    env = { ...j };                                                   // já é um envelope de canal\n  } else {\n    // ---- Aplicação web (formulários de frete e de demanda geral) ----\n    const b = corpo(j);\n    const { id_requisicao, tipo_demanda, nome, email, telefone, assunto, descricao, ...resto } = b;\n    env = {\n      canal: 'web',\n      chave_evento: id_requisicao ? `web:${texto(id_requisicao)}` : null,\n      solicitante: { nome: texto(nome).trim(), email: texto(email).trim(), telefone: texto(telefone).trim() },\n      tipo_informado: tipo_demanda || null,\n      assunto: texto(assunto).trim(),\n      texto: texto(descricao).trim(),\n      campos_brutos: { ...resto, ...(assunto ? { assunto } : {}), ...(descricao ? { descricao } : {}) },\n      dados_originais: b,\n      resposta: { via: 'http' },\n    };\n  }\n\n  env.recebido_em = env.recebido_em || agora;\n  env.ambiente = env.ambiente || 'demonstracao';\n  env.solicitante = env.solicitante || {};\n  env.campos_brutos = env.campos_brutos || {};\n  env.dados_originais = env.dados_originais || env.campos_brutos;\n  env.eventos = [...(env.eventos || []), { etapa: 'recebido', detalhe: `Recebido pelo canal ${env.canal}` }];\n  // Sem identificador do evento: gera um a partir do conteúdo + data (evita gravar duas vezes o mesmo envio)\n  if (!env.chave_evento) {\n    env.chave_evento = `${env.canal}:${hash(JSON.stringify(env.dados_originais) + '|' + env.recebido_em + '|' + i)}`;\n  }\n  return { json: env, pairedItem: { item: i } };\n});\n"
+      }
+    },
+    {
+      "id": "ba1a56a7-19f6-54b7-a715-ecf03f5031b2",
+      "name": "Mapear Campos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1720,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// =====================================================================\n// BLOCO 3 | MAPEAR CAMPOS  (evolução do node \"Mapear Campos\" da 1ª etapa)\n// 1) Reconhece nomes equivalentes (celular = fone = telefone; frete = frete_ton ...)\n// 2) Quando o pedido chega como TEXTO LIVRE (Telegram, e-mail, PDF), extrai os campos\n//    logísticos com expressões regulares simples. Só preenche o que está escrito:\n//    nada é inventado. Campo não encontrado continua ausente.\n// Saída: dados (campos canônicos), origem_dos_campos, campos_nao_mapeados, conflitos\n// Os VALORES ainda não são convertidos aqui (isso é feito na validação/normalização).\n// =====================================================================\n\nconst SINONIMOS = {\n  // ---- campos gerais (1ª etapa) ----\n  nome: ['nome', 'nome_cliente', 'cliente', 'nome_completo', 'razao_social', 'solicitante', 'name'],\n  telefone: ['telefone', 'celular', 'fone', 'tel', 'whatsapp', 'phone', 'contato'],\n  email: ['email', 'e_mail', 'mail'],\n  documento: ['documento', 'cpf', 'cnpj', 'cpf_cnpj', 'doc'],\n  data_pedido: ['data_pedido', 'data', 'data_solicitacao', 'data_do_pedido', 'dt_pedido'],\n  tipo: ['tipo', 'assunto', 'motivo', 'tipo_solicitacao', 'subject', 'setor_desejado'],\n  observacao: ['observacao', 'obs', 'mensagem', 'descricao', 'texto', 'detalhes', 'message', 'solicitacao'],\n  nota_fiscal: ['nota_fiscal', 'nf', 'num_nf', 'nfe'],\n  tipo_demanda: ['tipo_demanda', 'categoria_demanda'],\n  // ---- campos logísticos (mesmos nomes do dataset rodomax_demandas.csv) ----\n  produto: ['produto', 'carga', 'mercadoria', 'grao'],\n  uf_origem: ['uf_origem', 'uf', 'origem_uf', 'estado_origem', 'origem', 'uf_de_origem'],\n  destino: ['destino', 'cidade_destino', 'destino_cidade', 'entrega'],\n  distancia_km: ['distancia_km', 'distancia', 'km', 'distancia_em_km'],\n  frete_ton: ['frete_ton', 'frete', 'valor_frete', 'frete_por_tonelada', 'preco_ton', 'frete_r_ton', 'valor_do_frete'],\n  saldo_ton: ['saldo_ton', 'saldo', 'toneladas', 'volume_ton', 'quantidade_ton', 'peso_ton', 'saldo_em_toneladas'],\n  balanca: ['balanca', 'tipo_balanca', 'balanca_m', 'tipo_de_balanca'],\n  estrada_chao_km: ['estrada_chao_km', 'estrada_chao', 'chao_km', 'estrada_terra_km', 'estrada_de_chao', 'km_estrada_de_chao'],\n  antecedencia_h: ['antecedencia_h', 'antecedencia', 'antecedencia_horas', 'prazo_h', 'antecedencia_em_horas'],\n  // ---- históricos (só são guardados; NÃO são usados como atributo da IA) ----\n  id_demanda: ['id_demanda'],\n  canal_historico: ['canal'],\n  status_agendamento: ['status_agendamento'],\n  atendida: ['atendida'],\n};\nconst CAMPOS_LOGISTICOS = ['produto', 'uf_origem', 'destino', 'distancia_km', 'frete_ton', 'saldo_ton', 'balanca', 'estrada_chao_km', 'antecedencia_h'];\n\n// \"Nome Cliente\" -> \"nome_cliente\" ; \"Distância (km)\" -> \"distancia_km\"\nconst chave = (k) => String(k).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '')\n  .toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');\nconst semAcento = (s) => String(s ?? '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '');\n\nconst PARA_CANONICO = {};\nfor (const [canonico, apelidos] of Object.entries(SINONIMOS)) apelidos.forEach((a) => { PARA_CANONICO[a] = canonico; });\n\n// Dois valores \"dizem a mesma coisa\"? (telefone/documento/NF comparam só dígitos)\nfunction mesmoValor(campo, a, b) {\n  if (['telefone', 'documento', 'nota_fiscal'].includes(campo)) return a.replace(/\\D/g, '') === b.replace(/\\D/g, '');\n  return chave(a) === chave(b);\n}\n\n// ----------------------- EXTRAÇÃO DE TEXTO LIVRE -----------------------\nconst UFS = ['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'];\nconst ESTADOS = { 'parana': 'PR', 'mato grosso do sul': 'MS', 'mato grosso': 'MT', 'santa catarina': 'SC', 'sao paulo': 'SP', 'rio grande do sul': 'RS', 'goias': 'GO', 'minas gerais': 'MG' };\nconst PRODUTOS = ['milho', 'soja', 'trigo', 'sorgo', 'farelo', 'arroz', 'feijao', 'cafe', 'algodao'];\nconst CIDADES_CONHECIDAS = ['Paranagua', 'Toledo', 'Maringa', 'Xanxere', 'Lacerdopolis', 'Cascavel', 'Guarapuava', 'Videira'];\nconst NUM = '(\\\\d{1,3}(?:\\\\.\\\\d{3})+(?:,\\\\d+)?|\\\\d+(?:[.,]\\\\d+)?)';\n\nfunction extrairDoTexto(textoOriginal) {\n  const t = semAcento(textoOriginal);           // mantém maiúsculas (para UF)\n  const low = t.toLowerCase();\n  const achados = {};\n  let m;\n\n  // produto\n  const prod = PRODUTOS.find((p) => new RegExp(`\\\\b${p}\\\\b`).test(low));\n  if (prod) achados.produto = prod.toUpperCase();\n\n  // estrada de chão: \"12 km de estrada de chão\", \"estrada de chão: 12\", \"sem estrada de chão\"\n  if ((m = low.match(new RegExp(`${NUM}\\\\s*km\\\\s*(?:de\\\\s+)?(?:estrada\\\\s+de\\\\s+)?(?:chao|terra)`)))) achados.estrada_chao_km = m[1];\n  else if ((m = low.match(new RegExp(`(?:estrada\\\\s+de\\\\s+)?(?:chao|terra)\\\\s*(?:de|:|=)?\\\\s*${NUM}`)))) achados.estrada_chao_km = m[1];\n  else if (/sem\\s+(?:estrada\\s+de\\s+)?(?:chao|terra)|(?:tudo|so|somente)\\s+(?:no\\s+)?asfalto/.test(low)) achados.estrada_chao_km = '0';\n\n  // distância: \"450 km\" (que NÃO seja de estrada de chão) ou \"distância: 450\"\n  if ((m = low.match(new RegExp(`distancia\\\\s*(?:de|:|=)?\\\\s*${NUM}`)))) achados.distancia_km = m[1];\n  else {\n    const re = new RegExp(`${NUM}\\\\s*(?:km|quilometros)\\\\b(?!\\\\s*(?:de\\\\s+)?(?:estrada\\\\s+de\\\\s+)?(?:chao|terra))`, 'g');\n    const r = re.exec(low);\n    if (r) achados.distancia_km = r[1];\n  }\n\n  // frete por tonelada: \"frete de R$ 120/t\", \"R$ 120 por tonelada\", \"frete: 120\"\n  if ((m = low.match(new RegExp(`frete\\\\s*(?:de|:|=|a)?\\\\s*(?:r\\\\$)?\\\\s*${NUM}`)))) achados.frete_ton = m[1];\n  else if ((m = low.match(new RegExp(`r\\\\$\\\\s*${NUM}\\\\s*(?:\\\\/\\\\s*t|por\\\\s+t|\\\\/\\\\s*ton|por\\\\s+ton)`)))) achados.frete_ton = m[1];\n\n  // saldo em toneladas: \"saldo de 1.500 t\", \"1500 toneladas\" (não precedido de R$)\n  if ((m = low.match(new RegExp(`saldo\\\\s*(?:de|:|=)?\\\\s*${NUM}`)))) achados.saldo_ton = m[1];\n  else if ((m = low.match(new RegExp(`(?<!r\\\\$\\\\s?)${NUM}\\\\s*(?:t|ton|toneladas)\\\\b(?!\\\\s*\\\\/)`)))) achados.saldo_ton = m[1];\n\n  // balança\n  if (/balanca[^.\\n]{0,20}sem\\s+restric|sem\\s+restricao/.test(low)) achados.balanca = 'sem_restricao';\n  else if ((m = low.match(/balanca\\s*(?:de|:|=)?\\s*(20|25|30)\\s*m/)) || (m = low.match(/\\b(20|25|30)\\s*m(?:etros)?\\s*(?:de\\s+)?balanca/))) achados.balanca = `${m[1]}m`;\n\n  // antecedência: \"72 horas de antecedência\", \"antecedência: 48h\", \"3 dias de antecedência\"\n  if ((m = low.match(new RegExp(`antecedencia\\\\s*(?:de|:|=)?\\\\s*${NUM}\\\\s*(h|horas?|dias?)?`)))) achados.antecedencia_h = m[2] && m[2].startsWith('dia') ? String(Number(m[1].replace(',', '.')) * 24) : m[1];\n  else if ((m = low.match(new RegExp(`${NUM}\\\\s*(h|horas?|dias?)\\\\s*(?:de\\\\s+)?antecedencia`)))) achados.antecedencia_h = m[2].startsWith('dia') ? String(Number(m[1].replace(',', '.')) * 24) : m[1];\n\n  // UF de origem: \"do PR\", \"origem PR\", \"saindo do Paraná\", ou sigla isolada em maiúsculas\n  if ((m = t.match(/\\b(?:origem|uf|de|do|da|saindo\\s+d[eoa]|sai\\s+d[eoa])\\s*:?\\s*([A-Z]{2})\\b/)) && UFS.includes(m[1])) achados.uf_origem = m[1];\n  else {\n    const est = Object.keys(ESTADOS).find((e) => low.includes(e));\n    if (est) achados.uf_origem = ESTADOS[est];\n    else { const sig = (t.match(/\\b[A-Z]{2}\\b/g) || []).find((s) => UFS.includes(s)); if (sig) achados.uf_origem = sig; }\n  }\n\n  // destino: cidade conhecida do histórico ou \"para <Cidade>\" / \"destino: <Cidade>\"\n  const conhecida = CIDADES_CONHECIDAS.find((c) => new RegExp(`\\\\b${c.toLowerCase()}\\\\b`).test(low));\n  if (conhecida) achados.destino = conhecida;\n  else if ((m = t.match(/\\b(?:destino|para|ate)\\s*:?\\s*([A-Z][a-zA-Z]+(?:\\s+(?:d[aeo]s?\\s+)?[A-Z][a-zA-Z]+)*)/))) {\n    if (!UFS.includes(m[1])) achados.destino = m[1];\n  }\n  return achados;\n}\n\nreturn $input.all().map((item, idx) => {\n  const env = item.json;\n  const dados = {}; const origem = {}; const naoMapeados = {}; const conflitos = [];\n\n  // 1) campos estruturados (formulário, CSV, linhas \"Chave: valor\" do PDF/e-mail)\n  for (const [campoOriginal, bruto] of Object.entries(env.campos_brutos || {})) {\n    const destino = PARA_CANONICO[chave(campoOriginal)];\n    if (!destino || (bruto !== null && typeof bruto === 'object')) { naoMapeados[campoOriginal] = bruto; continue; }\n    const valor = String(bruto ?? '').trim();\n    if (valor === '') continue;                                   // vazio = ausente (não inventamos nada)\n    if (dados[destino] === undefined) { dados[destino] = valor; origem[destino] = `campo \"${campoOriginal}\"`; }\n    else if (!mesmoValor(destino, dados[destino], valor)) conflitos.push({ campo: destino, valores: [dados[destino], valor] });\n  }\n\n  // 2) dados do solicitante informados pelo canal (remetente do e-mail, perfil do Telegram, formulário)\n  const s = env.solicitante || {};\n  if (!dados.nome && s.nome) { dados.nome = s.nome; origem.nome = `canal ${env.canal}`; }\n  if (!dados.email && s.email) { dados.email = s.email; origem.email = `canal ${env.canal}`; }\n  if (!dados.telefone && s.telefone) { dados.telefone = s.telefone; origem.telefone = `canal ${env.canal}`; }\n  if (!dados.tipo && env.assunto) { dados.tipo = env.assunto; origem.tipo = 'assunto'; }\n  if (!dados.observacao && env.texto) { dados.observacao = env.texto; origem.observacao = 'texto da mensagem'; }\n\n  // 3) texto livre: extrai campos logísticos que ainda não vieram estruturados\n  const textoLivre = [env.assunto, env.texto].filter(Boolean).join('\\n');\n  const extraidos = textoLivre ? extrairDoTexto(textoLivre) : {};\n  for (const [campo, valor] of Object.entries(extraidos)) {\n    if (dados[campo] === undefined) { dados[campo] = valor; origem[campo] = 'extraído do texto'; }\n  }\n\n  return { json: {\n    ...env,\n    dados,\n    origem_dos_campos: origem,\n    campos_logisticos_encontrados: CAMPOS_LOGISTICOS.filter((c) => dados[c] !== undefined),\n    campos_nao_mapeados: naoMapeados,\n    conflitos,\n    eventos: [...env.eventos, { etapa: 'mapeamento', detalhe: `${Object.keys(dados).length} campos reconhecidos; ${Object.keys(extraidos).length} extraídos do texto livre` }],\n  }, pairedItem: { item: idx } };\n});\n"
+      }
+    },
+    {
+      "id": "3ab02f4b-1ec0-5d0d-acbf-ce1826a5b719",
+      "name": "Identificar Tipo de Demanda",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1960,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// =====================================================================\n// BLOCO 3 | IDENTIFICAR TIPO DE DEMANDA  (geral x logística)\n// O HUB é multissetorial: só vai para o caminho logístico (e para a IA) o que for,\n// de fato, um pedido de transporte/frete. Regras, em ordem:\n//   1. Tipo informado explicitamente (formulário web, Telegram, CSV) -> respeitado.\n//   2. 2 ou mais atributos logísticos encontrados (produto, distância, saldo...) -> logística.\n//   3. Intenção de transporte no texto (\"transportar\", \"carregar\", \"preciso de frete\")\n//      SEM palavras fortes de outro setor (boleto, fatura, reclamação...) -> logística.\n//   4. Caso contrário -> demanda geral (vai para a classificação por setor).\n// =====================================================================\n\nconst semAcento = (s) => String(s ?? '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();\nconst INTENCAO_TRANSPORTE = /(transport|carregar|carregamento|preciso de (um )?(frete|caminhao|carreta)|solicit\\w* (de )?frete|frete (de|para) |escoar|embarcar|carga de )/;\nconst OUTRO_SETOR = /(boleto|fatura|cobranca|segunda via|pagamento|reclam|cadastro|contrato|nota fiscal|curriculo|vaga|manutencao)/;\n\nfunction tipoInformado(v) {\n  const t = semAcento(v);\n  if (['logistica', 'frete', 'transporte', 'logistico'].includes(t)) return 'logistica';\n  if (['geral', 'outro', 'outros', 'administrativo'].includes(t)) return 'geral';\n  return null;\n}\n\nreturn $input.all().map((item, idx) => {\n  const j = item.json;\n  const txt = semAcento([j.dados.tipo, j.dados.observacao].filter(Boolean).join(' '));\n  const nLog = j.campos_logisticos_encontrados.filter((c) => c !== 'destino').length;\n\n  let tipo; let motivo;\n  const informado = tipoInformado(j.tipo_informado) || tipoInformado(j.dados.tipo_demanda);\n  if (informado) { tipo = informado; motivo = 'tipo informado pelo solicitante/canal'; }\n  else if (nLog >= 2) { tipo = 'logistica'; motivo = `${nLog} atributos logísticos encontrados (${j.campos_logisticos_encontrados.join(', ')})`; }\n  else if (INTENCAO_TRANSPORTE.test(txt) && !OUTRO_SETOR.test(txt)) { tipo = 'logistica'; motivo = 'intenção de transporte identificada no texto'; }\n  else { tipo = 'geral'; motivo = nLog ? 'poucos atributos logísticos e sem intenção clara de transporte' : 'nenhum atributo logístico encontrado'; }\n\n  return { json: {\n    ...j,\n    tipo_demanda: tipo,\n    motivo_tipo: motivo,\n    eventos: [...j.eventos, { etapa: 'identificacao', detalhe: `Demanda ${tipo === 'logistica' ? 'LOGÍSTICA' : 'GERAL'}: ${motivo}` }],\n  }, pairedItem: { item: idx } };\n});\n"
+      }
+    },
+    {
+      "id": "5d964d01-c19c-5a8f-adf3-6c5abfdac307",
+      "name": "Auditar e Validar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2200,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// =====================================================================\n// BLOCO 4 | AUDITAR E VALIDAR  (evolução do node \"Auditar e Validar\" da 1ª etapa)\n// Define, com critérios explícitos, a situação de cada solicitação:\n//   \"valida\"    -> segue para o caminho GERAL ou LOGÍSTICO\n//   \"pendente\"  -> faltam informações (o solicitante é avisado do que falta)\n//   \"rejeitada\" -> valor inválido/inconsistente, conflito ou duplicidade no lote\n// Cada problema vira um item em \"motivos\" (nada é descartado em silêncio).\n// Regras gerais (1ª etapa): contato, e-mail, telefone, documento, data.\n// Regras logísticas: 9 atributos do dataset, com tipos e faixas plausíveis.\n// =====================================================================\n\nconst LOGISTICOS = {\n  produto: 'Produto', uf_origem: 'UF de origem', destino: 'Destino', distancia_km: 'Distância (km)',\n  frete_ton: 'Frete por tonelada (R$)', saldo_ton: 'Saldo (toneladas)', balanca: 'Tipo de balança',\n  estrada_chao_km: 'Estrada de chão (km)', antecedencia_h: 'Antecedência (horas)',\n};\nconst UFS = ['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'];\n// Faixas de plausibilidade (validação de dados, não regra de negócio da IA)\nconst FAIXAS = {\n  distancia_km: [1, 3500], frete_ton: [1, 1000], saldo_ton: [1, 100000],\n  estrada_chao_km: [0, 500], antecedencia_h: [0, 720],\n};\n// Canais em que o solicitante pode completar a informação (os demais rejeitam o que falta)\nconst CANAIS_INTERATIVOS = ['web', 'telegram', 'email', 'teste'];\n\nconst digitos = (s) => String(s ?? '').replace(/\\D/g, '');\nconst semAcento = (s) => String(s ?? '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().replace(/\\s+/g, ' ').trim();\nconst emailValido = (e) => /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(e);\n\n// Telefone brasileiro -> DDD+número (10 ou 11 dígitos) ou null. Remove +55 quando presente.\nfunction parseTelefone(valor) {\n  let d = digitos(valor);\n  if ((d.length === 12 || d.length === 13) && d.startsWith('55')) d = d.slice(2);\n  if (d.length === 10 && /^[1-9]{2}[2-9]/.test(d)) return d;\n  if (d.length === 11 && /^[1-9]{2}9/.test(d)) return d;\n  return null;\n}\n// Data -> AAAA-MM-DD ou null (aceita AAAA-MM-DD e DD/MM/AAAA)\nfunction parseData(valor) {\n  const s = String(valor ?? '').trim(); let a; let mes; let dia; let m;\n  if ((m = s.match(/^(\\d{4})-(\\d{2})-(\\d{2})(?:[T ].*)?$/))) { a = +m[1]; mes = +m[2]; dia = +m[3]; }\n  else if ((m = s.match(/^(\\d{1,2})[/.-](\\d{1,2})[/.-](\\d{4})$/))) { dia = +m[1]; mes = +m[2]; a = +m[3]; }\n  else return null;\n  const dt = new Date(Date.UTC(a, mes - 1, dia));\n  if (dt.getUTCFullYear() !== a || dt.getUTCMonth() !== mes - 1 || dt.getUTCDate() !== dia) return null;\n  return `${a}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;\n}\n// Número em formato brasileiro ou internacional (\"1.500\", \"1500,5\", \"1500.5\") -> Number ou NaN\nfunction lerNumero(v) {\n  if (v === null || v === undefined || v === '') return NaN;\n  if (typeof v === 'number') return v;\n  // aceita unidades comuns digitadas junto do número: \"450 km\", \"R$ 120/t\", \"72h\", \"1.500 toneladas\"\n  let t = String(v).trim().toLowerCase().replace(/\\s/g, '').replace(/^r\\$/, '')\n    .replace(/(por(tonelada|ton|t)|\\/(tonelada|ton|t)|km|quilometros|horas?|hrs?|h|toneladas?|ton|t|reais)$/, '');\n  if (/^\\d{1,3}(\\.\\d{3})+(,\\d+)?$/.test(t)) t = t.replace(/\\./g, '').replace(',', '.');\n  else t = t.replace(',', '.');\n  return /^-?\\d+(\\.\\d+)?$/.test(t) ? Number(t) : NaN;\n}\n// Balança -> \"20m\" | \"25m\" | \"30m\" | \"sem_restricao\" | null\nfunction lerBalanca(v) {\n  const t = semAcento(v).replace(/\\s/g, '');\n  if (/^(sem_?restricao|semrestricao|livre|nenhuma)$/.test(t)) return 'sem_restricao';\n  const m = t.match(/^(20|25|30)(m|metros)?$/);\n  return m ? `${m[1]}m` : null;\n}\n\nfunction fnv(txt, seed) { let h = seed; for (const ch of txt) { h ^= ch.codePointAt(0); h = Math.imul(h, 0x01000193) >>> 0; } return h.toString(16).padStart(8, '0'); }\nconst hash = (txt) => fnv(txt, 0x811c9dc5) + fnv(txt, 0x9747b28c);\n\nconst vistos = new Map();   // conteúdo já visto NESTE lote -> evita duplicidade (ex.: linhas repetidas no CSV)\n\nreturn $input.all().map((item, idx) => {\n  const j = item.json; const d = j.dados || {};\n  const motivos = []; const faltando = [];\n  const add = (codigo, campo, descricao) => motivos.push({ codigo, campo, descricao });\n  const interativo = CANAIS_INTERATIVOS.includes(j.canal);\n\n  // ---------- regras gerais (contato e formatos) ----------\n  if (j.canal === 'web' && !d.nome) { add('AUSENTE', 'nome', 'Nome do solicitante não informado'); faltando.push('nome'); }\n  if (j.canal === 'web' && !d.telefone && !d.email) { add('AUSENTE', 'contato', 'Informe telefone ou e-mail para retorno'); faltando.push('contato'); }\n  if (d.telefone && !parseTelefone(d.telefone)) add('INCONSISTENTE', 'telefone', `Telefone fora do padrão brasileiro: \"${d.telefone}\"`);\n  if (d.email && !emailValido(d.email)) add('INCONSISTENTE', 'email', `E-mail inválido: \"${d.email}\"`);\n  if (d.data_pedido && !parseData(d.data_pedido)) add('INCONSISTENTE', 'data_pedido', `Data inválida ou ambígua: \"${d.data_pedido}\"`);\n  if (d.documento && ![11, 14].includes(digitos(d.documento).length)) add('INCONSISTENTE', 'documento', `CPF/CNPJ com quantidade de dígitos inválida: \"${d.documento}\"`);\n  for (const c of j.conflitos || []) add('CONFLITO', c.campo, `Campos equivalentes com valores diferentes: ${c.valores.map((v) => `\"${v}\"`).join(' x ')}`);\n\n  // ---------- regras por tipo ----------\n  const logistica = {};\n  if (j.tipo_demanda === 'geral') {\n    if (!d.tipo && !d.observacao) { add('AUSENTE', 'descricao', 'Descreva a solicitação'); faltando.push('descricao'); }\n  } else {\n    for (const [campo, rotulo] of Object.entries(LOGISTICOS)) {\n      if (d[campo] === undefined || String(d[campo]).trim() === '') { add('AUSENTE', campo, `${rotulo} não informado(a)`); faltando.push(campo); }\n    }\n    if (d.produto !== undefined) logistica.produto = semAcento(d.produto).toUpperCase();\n    if (d.uf_origem !== undefined) {\n      const ESTADOS = { 'PARANA': 'PR', 'MATO GROSSO DO SUL': 'MS', 'MATO GROSSO': 'MT', 'SANTA CATARINA': 'SC', 'SAO PAULO': 'SP', 'RIO GRANDE DO SUL': 'RS', 'GOIAS': 'GO' };\n      const bruto = semAcento(d.uf_origem).toUpperCase();\n      const uf = ESTADOS[bruto] || bruto;\n      if (UFS.includes(uf)) logistica.uf_origem = uf; else add('INVALIDO', 'uf_origem', `UF inválida: \"${d.uf_origem}\" (use a sigla, ex.: PR)`);\n    }\n    if (d.destino !== undefined) {\n      const dest = String(d.destino).trim();\n      if (dest.length >= 2 && !/^\\d+$/.test(dest)) logistica.destino = dest; else add('INVALIDO', 'destino', `Destino inválido: \"${d.destino}\"`);\n    }\n    for (const campo of Object.keys(FAIXAS)) {\n      if (d[campo] === undefined) continue;\n      const n = lerNumero(d[campo]); const [min, max] = FAIXAS[campo];\n      if (Number.isNaN(n) || n < min || n > max) add('INVALIDO', campo, `${LOGISTICOS[campo]} deve ser um número entre ${min} e ${max}: \"${d[campo]}\"`);\n      else logistica[campo] = n;\n    }\n    if (d.balanca !== undefined) {\n      const b = lerBalanca(d.balanca);\n      if (b) logistica.balanca = b; else add('INVALIDO', 'balanca', `Balança inválida: \"${d.balanca}\" (use 20m, 25m, 30m ou sem_restricao)`);\n    }\n    if (logistica.estrada_chao_km !== undefined && logistica.distancia_km !== undefined && logistica.estrada_chao_km > logistica.distancia_km) {\n      add('INCONSISTENTE', 'estrada_chao_km', 'Estrada de chão maior que a distância total');\n    }\n    if (d.atendida !== undefined) add('IGNORADO', 'atendida', 'Campo \"atendida\" recebido em demanda nova: ignorado (é o que a IA prevê)');\n  }\n\n  // ---------- duplicidade dentro do mesmo lote ----------\n  const base = [j.canal, j.arquivo_id || '', semAcento(d.nome), digitos(d.telefone) || semAcento(d.email),\n    semAcento(`${d.tipo || ''} ${d.observacao || ''}`), JSON.stringify(logistica)].join('|');\n  const chaveConteudo = hash(base);\n  const ocorrencia = (vistos.get(chaveConteudo) || 0) + 1;\n  vistos.set(chaveConteudo, ocorrencia);\n  if (ocorrencia > 1 && j.canal === 'csv') add('DUPLICADO', 'registro', `Mesmo conteúdo já recebido neste arquivo (ocorrência ${ocorrencia})`);\n\n  // ---------- situação final ----------\n  const bloqueantes = motivos.filter((m) => m.codigo !== 'IGNORADO');\n  const soFaltam = bloqueantes.length > 0 && bloqueantes.every((m) => m.codigo === 'AUSENTE');\n  // No Telegram a conversa continua: dado ausente OU inválido é perguntado de novo (não rejeita)\n  const corrigivelNoChat = j.canal === 'telegram' && bloqueantes.every((m) => ['AUSENTE', 'INVALIDO', 'INCONSISTENTE'].includes(m.codigo));\n  const status = bloqueantes.length === 0 ? 'valida' : ((soFaltam && interativo) || corrigivelNoChat ? 'pendente' : 'rejeitada');\n\n  return { json: {\n    ...j,\n    status_validacao: status,\n    motivos,\n    campos_faltando: faltando,\n    logistica_validada: j.tipo_demanda === 'logistica' ? logistica : null,\n    eventos: [...j.eventos, { etapa: 'validacao', detalhe: status === 'valida' ? 'Validação aprovada' : `${status}: ${bloqueantes.map((m) => m.descricao).join('; ')}` }],\n  }, pairedItem: { item: idx } };\n});\n"
+      }
+    },
+    {
+      "id": "970b60d9-8556-597a-af0b-3923566a6dfe",
+      "name": "Direcionar Demanda",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        2600,
+        0
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "1a701831-f189-5f38-a2dc-edc928ea1e46",
+                    "leftValue": "={{ $json.canal === 'telegram' && $json.status_validacao === 'pendente' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Telegram: coletar dados"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "6736e504-643d-52e7-afd1-0bb66fbd24cc",
+                    "leftValue": "={{ $json.tipo_demanda === 'geral' && $json.status_validacao === 'valida' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Geral"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "9a7fbb98-5383-5819-a9c2-773239efc029",
+                    "leftValue": "={{ $json.tipo_demanda === 'logistica' && $json.status_validacao === 'valida' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Logística"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "3c324c04-bd68-51f1-a1a1-ab6e3e5f6f5e",
+                    "leftValue": "={{ $json.status_validacao !== 'valida' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Pendente ou rejeitada"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "54c530ae-13e0-5e6d-a3ad-e137d0f26f9b",
+      "name": "Normalizar Demanda Geral",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2940,
+        -400
+      ],
+      "parameters": {
+        "jsCode": "// =====================================================================\n// BLOCO 6A | NORMALIZAR DEMANDA GERAL  (node \"Normalizar Dados\" da 1ª etapa)\n// Padroniza valores de forma conservadora (só altera quando há segurança).\n// Campo ausente continua null: nada é inventado.\n// =====================================================================\n\nconst PARTICULAS = new Set(['da', 'de', 'do', 'das', 'dos', 'e']);\nconst limpar = (s) => String(s ?? '').replace(/\\s+/g, ' ').trim();\n\n// Só ajusta a caixa se o nome veio TODO em maiúsculas ou TODO em minúsculas.\nfunction normalizarNome(nome) {\n  const n = limpar(nome);\n  if (n !== n.toUpperCase() && n !== n.toLowerCase()) return n;\n  return n.toLowerCase().split(' ')\n    .map((p, i) => (i > 0 && PARTICULAS.has(p) ? p : p.charAt(0).toUpperCase() + p.slice(1))).join(' ');\n}\nfunction normalizarTelefone(v) {\n  let d = String(v).replace(/\\D/g, '');\n  if ((d.length === 12 || d.length === 13) && d.startsWith('55')) d = d.slice(2);\n  return d;\n}\nfunction normalizarData(v) {\n  const s = String(v).trim();\n  let m = s.match(/^(\\d{4})-(\\d{2})-(\\d{2})/);\n  if (m) return `${m[1]}-${m[2]}-${m[3]}`;\n  m = s.match(/^(\\d{1,2})[/.-](\\d{1,2})[/.-](\\d{4})$/);\n  return m ? `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}` : null;\n}\nconst emBranco = (v) => (v === undefined || v === null || v === '' ? null : v);\n\nreturn $input.all().map((item, idx) => {\n  const j = item.json; const d = j.dados || {};\n  const normalizados = {\n    nome: emBranco(d.nome && normalizarNome(d.nome)),\n    telefone: emBranco(d.telefone && normalizarTelefone(d.telefone)),\n    email: emBranco(d.email && limpar(d.email).toLowerCase()),\n    documento: emBranco(d.documento && d.documento.replace(/\\D/g, '')),\n    data_pedido: emBranco(d.data_pedido && normalizarData(d.data_pedido)),\n    tipo: emBranco(d.tipo && limpar(d.tipo)),\n    observacao: emBranco(d.observacao && limpar(d.observacao)),\n    nota_fiscal: emBranco(d.nota_fiscal && limpar(d.nota_fiscal)),\n  };\n  const alteracoes = Object.keys(normalizados)\n    .filter((c) => d[c] !== undefined && d[c] !== normalizados[c])\n    .map((c) => ({ campo: c, de: d[c], para: normalizados[c] }));\n\n  return { json: {\n    ...j,\n    normalizados,\n    alteracoes,\n    eventos: [...j.eventos, { etapa: 'normalizacao', detalhe: `${alteracoes.length} campo(s) padronizado(s)` }],\n  }, pairedItem: { item: idx } };\n});\n"
+      }
+    },
+    {
+      "id": "66427263-f18b-5331-a775-32c99e571f8c",
+      "name": "Classificar Setor por Regras",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3180,
+        -400
+      ],
+      "parameters": {
+        "jsCode": "// =====================================================================\n// BLOCO 6A | CLASSIFICAR SETOR POR REGRAS  (node \"Classificar por Regras\" da 1ª etapa)\n// Classificação por PALAVRAS-CHAVE — NÃO é IA. Procura os termos no assunto + descrição\n// (sem acento, sem diferenciar maiúsculas) e escolhe a regra com mais termos encontrados.\n// Empate: vale a ordem da lista. Nenhum termo: \"Não identificada\" -> setor \"Atendimento\"\n// (triagem humana).\n//\n// CONFIGURAÇÃO: para mudar setores ou palavras, edite apenas a lista REGRAS abaixo.\n// Os setores são uma proposta para demonstração, não a estrutura oficial da Rodomax.\n// =====================================================================\n\nconst REGRAS = [\n  { categoria: 'Cobrança e pagamentos',    setor: 'Financeiro',     termos: ['boleto', 'fatura', 'segunda via', 'pagamento', 'cobranca', 'vencimento', 'reembolso', 'nota fiscal', 'pix'] },\n  { categoria: 'Cotação e proposta',       setor: 'Comercial',      termos: ['cotacao', 'orcamento', 'proposta', 'tabela de preco', 'parceria', 'contratar'] },\n  { categoria: 'Atraso ou rastreamento',   setor: 'Logística',      termos: ['atras', 'onde esta', 'rastre', 'previsao de entrega', 'nao chegou', 'demora', 'entrega'] },\n  { categoria: 'Avaria ou extravio',       setor: 'Operacional',    termos: ['avaria', 'danific', 'extravi', 'sinistro', 'ocorrencia', 'quebrad'] },\n  { categoria: 'Coleta e agendamento',     setor: 'Operacional',    termos: ['coleta', 'agendar', 'agendamento', 'retirada', 'janela'] },\n  { categoria: 'Manutenção de frota',      setor: 'Operacional',    termos: ['manutencao', 'pneu', 'oficina', 'revisao', 'mecanic', 'veiculo quebrado'] },\n  { categoria: 'Cadastro e documentos',    setor: 'Administrativo', termos: ['cadastro', 'contrato', 'documentacao', 'documento', 'certidao', 'atualizar dados', 'rh', 'curriculo'] },\n  { categoria: 'Reclamação e suporte',     setor: 'Atendimento',    termos: ['reclam', 'insatisf', 'duvida', 'atendimento', 'suporte', 'ajuda', 'informac'] },\n];\n\nconst semAcento = (s) => String(s ?? '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();\n// o termo precisa começar numa palavra (\"atras\" casa com \"atrasada\"; \"frete\" não casa dentro de \"refrete\")\nconst contem = (txt, termo) => new RegExp('(^|[^a-z0-9])' + termo).test(txt);\n\nreturn $input.all().map((item, idx) => {\n  const j = item.json;\n  const n = j.normalizados || {};\n  const txt = semAcento(`${n.tipo || ''} ${n.observacao || ''}`);\n\n  let melhor = null;\n  for (const regra of REGRAS) {\n    const achados = regra.termos.filter((t) => contem(txt, t));\n    if (achados.length && (!melhor || achados.length > melhor.achados.length)) melhor = { regra, achados };\n  }\n  const categoria = melhor ? melhor.regra.categoria : 'Não identificada';\n  const setor = melhor ? melhor.regra.setor : 'Atendimento';\n  const regra = melhor ? `palavras-chave: ${melhor.achados.join(', ')}` : 'nenhuma palavra-chave encontrada: triagem pelo Atendimento';\n\n  return { json: {\n    ...j,\n    categoria,\n    setor_responsavel: setor,\n    regra_classificacao: regra,\n    eventos: [...j.eventos, { etapa: 'classificacao', detalhe: `Setor ${setor} (${categoria}) — ${regra}` }],\n  }, pairedItem: { item: idx } };\n});\n"
+      }
+    },
+    {
+      "id": "a47eda67-9e9f-5884-a77d-b63f9a4910a2",
+      "name": "Normalizar Atributos Logísticos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2940,
+        280
+      ],
+      "parameters": {
+        "jsCode": "// =====================================================================\n// BLOCO 6B | NORMALIZAR ATRIBUTOS LOGÍSTICOS\n// Deixa os atributos no MESMO formato do dataset usado no treino:\n//   produto MAIÚSCULO sem acento (MILHO) | UF em sigla (PR) | destino sem acento, iniciais\n//   maiúsculas (Paranagua) | balança 20m/25m/30m/sem_restricao | números como Number.\n// Dados pessoais (nome, e-mail, telefone) NÃO entram nos atributos da IA.\n// =====================================================================\n\nconst semAcento = (s) => String(s ?? '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '');\nconst titulo = (s) => semAcento(s).toLowerCase().replace(/\\s+/g, ' ').trim()\n  .split(' ').map((p) => (['de', 'da', 'do', 'das', 'dos'].includes(p) ? p : p.charAt(0).toUpperCase() + p.slice(1))).join(' ');\nconst limpar = (s) => (s === undefined || s === null || String(s).trim() === '' ? null : String(s).replace(/\\s+/g, ' ').trim());\n\nreturn $input.all().map((item, idx) => {\n  const j = item.json; const l = j.logistica_validada || {}; const d = j.dados || {};\n  const atributos = {\n    produto: semAcento(l.produto).toUpperCase().trim(),\n    uf_origem: l.uf_origem,\n    destino: titulo(l.destino),\n    distancia_km: l.distancia_km,\n    frete_ton: l.frete_ton,\n    saldo_ton: l.saldo_ton,\n    balanca: l.balanca,\n    estrada_chao_km: l.estrada_chao_km,\n    antecedencia_h: l.antecedencia_h,\n  };\n  const normalizados = {\n    nome: limpar(d.nome), email: d.email ? String(d.email).trim().toLowerCase() : null,\n    telefone: d.telefone ? String(d.telefone).replace(/\\D/g, '') : null,\n    tipo: limpar(d.tipo), observacao: limpar(d.observacao),\n  };\n  return { json: {\n    ...j,\n    atributos_ia: atributos,\n    normalizados,\n    eventos: [...j.eventos, { etapa: 'normalizacao', detalhe: 'Atributos logísticos padronizados no formato do dataset' }],\n  }, pairedItem: { item: idx } };\n});\n"
+      }
+    },
+    {
+      "id": "38b3c5f6-7bf7-53df-a4d1-8a16d6239ebf",
+      "name": "Carregar Modelo Ativo",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        3180,
+        280
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, versao, arvore, jsonb_build_object('faixas', preparacao->'faixas', 'dominios', preparacao->'dominios') AS preparacao, metricas->'arvore'->>'acuracia' AS acuracia, metricas->'linha_base'->>'acuracia' AS acuracia_linha_base FROM ia_modelos WHERE ativo LIMIT 1;",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "xRB358Nv1hfm25RQ",
+          "name": "Postgres account"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "139492b1-0236-5b39-a1b4-ac4a2d7ebbf3",
+      "name": "Prever Atendimento (Árvore CART)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3420,
+        280
+      ],
+      "parameters": {
+        "jsCode": "// =====================================================================================\n// BLOCO 6B | PREVER ATENDIMENTO (ÁRVORE CART TREINADA)\n// Usa o modelo ATIVO salvo no PostgreSQL (tabela ia_modelos), carregado pelo node anterior.\n// Para cada demanda logística:\n//   1. calcula o atributo derivado frete_por_km (mesma fórmula do treino);\n//   2. percorre a árvore pergunta a pergunta até uma folha (caminho de decisão);\n//   3. devolve a classe da folha (sim/nao), a frequência suavizada da folha e a explicação.\n// A previsão é EXPERIMENTAL: apoio à decisão, não garantia de contratação/atendimento.\n// Sem modelo treinado -> a demanda é registrada com status \"erro\" (falha técnica da IA).\n// =====================================================================================\n\nconst modelo = $input.first().json;                                  // linha de ia_modelos (ou vazio)\nconst demandas = $('Normalizar Atributos Logísticos').all();\nconst AVISO = 'Previsão experimental gerada por árvore de decisão treinada com o histórico de 500 demandas. Não é garantia de contratação nem de execução do frete; a decisão final é da equipe de operação.';\n\nconst ROTULO = {\n  produto: 'Produto', uf_origem: 'UF de origem', destino: 'Destino', balanca: 'Balança', distancia_km: 'Distância (km)',\n  frete_ton: 'Frete (R$/t)', saldo_ton: 'Saldo (t)', estrada_chao_km: 'Estrada de chão (km)', antecedencia_h: 'Antecedência (h)',\n  frete_por_km: 'Frete por t·km (R$)',\n};\nconst fmtNum = (v) => (typeof v === 'number' ? (Math.round(v * 10000) / 10000).toString().replace('.', ',') : String(v));\nconst testar = (r, no) => (no.op === '<=' ? r[no.atributo] <= no.valor : no.valor.includes(r[no.atributo]));\n\nfunction percorrer(arvore, r) {\n  const caminho = []; let no = arvore;\n  while (no.tipo === 'divisao') {\n    const ok = testar(r, no);\n    const pergunta = no.op === '<=' ? `${ROTULO[no.atributo] || no.atributo} ≤ ${fmtNum(no.valor)}?` : `${ROTULO[no.atributo] || no.atributo} ∈ {${no.valor.join(', ')}}?`;\n    caminho.push({ atributo: no.atributo, pergunta, valor_da_demanda: r[no.atributo], resposta: ok ? 'sim' : 'não' });\n    no = ok ? no.esquerda : no.direita;\n  }\n  return { folha: no, caminho };\n}\n\nreturn demandas.map((item, idx) => {\n  const j = item.json;\n  if (!modelo || !modelo.arvore) {\n    return { json: { ...j, previsao: null, erro_ia: 'Nenhum modelo de IA treinado. Treine o modelo na Central de Controle (Modelo de IA).',\n      eventos: [...j.eventos, { etapa: 'ia', detalhe: 'Falha: nenhum modelo ativo no banco' }] }, pairedItem: { item: 0 } };\n  }\n  try {\n    const r = { ...j.atributos_ia };\n    r.frete_por_km = Math.round((r.frete_ton / r.distancia_km) * 10000) / 10000;   // igual ao IA 1\n\n    const { folha, caminho } = percorrer(modelo.arvore, r);\n    const probSim = Math.round(((folha.contagem.sim + 1) / (folha.n + 2)) * 1000) / 1000;   // suavização de Laplace\n    const classe = folha.classe;\n    const decisivos = [...new Set(caminho.map((c) => c.atributo))];\n\n    // avisos de extrapolação (valores fora do que o modelo viu no treino)\n    const avisos = [];\n    const prep = modelo.preparacao || {};\n    for (const [campo, f] of Object.entries(prep.faixas || {})) {\n      if (r[campo] !== undefined && (r[campo] < f.min || r[campo] > f.max)) avisos.push(`${ROTULO[campo] || campo} = ${fmtNum(r[campo])} está fora da faixa do treino (${fmtNum(f.min)} a ${fmtNum(f.max)}): previsão por extrapolação.`);\n    }\n    for (const [campo, valores] of Object.entries(prep.dominios || {})) {\n      if (r[campo] !== undefined && !valores.includes(r[campo])) avisos.push(`${ROTULO[campo] || campo} \"${r[campo]}\" não aparece no histórico de treino.`);\n    }\n\n    const texto = classe === 'sim'\n      ? `Perfil semelhante ao de demandas ATENDIDAS no histórico: ${folha.contagem.sim} de ${folha.n} demandas de treino com essas características foram atendidas.`\n      : `Perfil semelhante ao de demandas NÃO ATENDIDAS no histórico: ${folha.contagem.nao} de ${folha.n} demandas de treino com essas características não foram atendidas. Sugestão: revisar valor do frete, prazo e condições de acesso.`;\n\n    const previsao = {\n      classe,\n      rotulo: classe === 'sim' ? 'Tende a ser atendida' : 'Risco de não ser atendida',\n      prob_atendida: probSim,\n      modelo_id: modelo.id,\n      explicacao: {\n        resumo: texto,\n        caminho,\n        atributos_decisivos: decisivos.map((a) => ({ atributo: a, rotulo: ROTULO[a] || a, valor: r[a] })),\n        folha: { n: folha.n, sim: folha.contagem.sim, nao: folha.contagem.nao },\n        frete_por_km: r.frete_por_km,\n        avisos,\n        modelo: { id: modelo.id, versao: modelo.versao, acuracia_teste: modelo.acuracia, acuracia_linha_base: modelo.acuracia_linha_base },\n        aviso_uso: AVISO,\n      },\n    };\n    return { json: { ...j, previsao, avisos_ia: avisos,\n      eventos: [...j.eventos, { etapa: 'ia', detalhe: `Árvore ${modelo.versao}: ${previsao.rotulo} (frequência de atendimento na folha ${Math.round(probSim * 100)}%) via ${decisivos.join(', ')}` }] }, pairedItem: { item: 0 } };\n  } catch (e) {\n    return { json: { ...j, previsao: null, erro_ia: `Falha ao executar a árvore: ${e.message}`,\n      eventos: [...j.eventos, { etapa: 'ia', detalhe: `Falha técnica: ${e.message}` }] }, pairedItem: { item: 0 } };\n  }\n});\n"
+      }
+    },
+    {
+      "id": "c311ab6c-3bb4-5a5b-a39d-6711d5108cef",
+      "name": "Perguntar Próximo Dado (Telegram)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2940,
+        -880
+      ],
+      "parameters": {
+        "jsCode": "// =====================================================================\n// BLOCO 8 | PERGUNTAR PRÓXIMO DADO (Telegram)\n// A demanda ainda está incompleta (ou com valor inválido): em vez de rejeitar, o bot\n// guarda o que já foi informado e pergunta UM campo por vez. Nada é inventado.\n// =====================================================================\n\nconst PERGUNTAS = {\n  produto: 'Qual é o produto? (ex.: milho ou soja)',\n  uf_origem: 'Qual a UF de origem da carga? (sigla, ex.: PR ou MS)',\n  destino: 'Qual a cidade de destino? (ex.: Paranaguá)',\n  distancia_km: 'Qual a distância da viagem em km? (ex.: 450)',\n  frete_ton: 'Qual o valor do frete por tonelada, em R$? (ex.: 120)',\n  saldo_ton: 'Qual o saldo de carga, em toneladas? (ex.: 1500)',\n  balanca: 'Qual a restrição da balança? Responda 20m, 25m, 30m ou sem restrição.',\n  estrada_chao_km: 'Quantos km do trajeto são em estrada de chão? (0 se for tudo asfalto)',\n  antecedencia_h: 'Com quantas horas de antecedência o pedido está sendo feito? (ex.: 48)',\n  descricao: 'Descreva sua solicitação em uma frase.',\n};\nconst ORDEM = Object.keys(PERGUNTAS);\n\nreturn $input.all().map((item, idx) => {\n  const j = item.json;\n  const anterior = (j.telegram && j.telegram.estado_anterior) || {};\n  const invalidos = (j.motivos || []).filter((m) => m.codigo !== 'AUSENTE' && m.codigo !== 'IGNORADO');\n  const camposInvalidos = invalidos.map((m) => m.campo).filter((c) => PERGUNTAS[c]);\n  const pendentes = [...new Set([...camposInvalidos, ...(j.campos_faltando || [])])].filter((c) => PERGUNTAS[c]);\n  pendentes.sort((a, b) => ORDEM.indexOf(a) - ORDEM.indexOf(b));\n  const proximo = pendentes[0] || null;\n\n  // guarda os campos já reconhecidos (exceto os inválidos, que serão perguntados de novo)\n  const campos = {};\n  for (const [k, v] of Object.entries(j.dados || {})) if (!camposInvalidos.includes(k) && ORDEM.includes(k)) campos[k] = v;\n  const textos = (j.dados_originais && j.dados_originais.mensagens) || anterior.textos || [];\n\n  const partes = [];\n  if (!anterior.tipo && j.tipo_demanda === 'logistica') partes.push('Entendi: é um pedido de FRETE. Vou registrar e analisar a chance de atendimento.');\n  if (invalidos.length) partes.push(`Não consegui aceitar: ${invalidos.map((m) => m.descricao).join('; ')}.`);\n  const jaTenho = ORDEM.filter((c) => c !== 'descricao' && campos[c] !== undefined);\n  if (j.tipo_demanda === 'logistica' && jaTenho.length) partes.push(`Já anotei: ${jaTenho.map((c) => `${c}=${campos[c]}`).join(', ')}.`);\n  partes.push(proximo ? PERGUNTAS[proximo] : 'Pode detalhar melhor sua solicitação?');\n  if (pendentes.length > 1) partes.push(`(faltam ${pendentes.length} informações — /cancelar para recomeçar)`);\n\n  return { json: {\n    chat_id: j.telegram.chat_id,\n    update_id: j.telegram.update_id,\n    estado: { tipo: j.tipo_demanda, campos, textos, aguardando: proximo, atualizado_em: new Date().toISOString() },\n    texto: partes.join('\\n'),\n  }, pairedItem: { item: idx } };\n});\n"
+      }
+    },
+    {
+      "id": "df7497cb-ca34-557d-a28a-4f760c2bcdc5",
+      "name": "Salvar Conversa Telegram",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        3180,
+        -880
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO telegram_conversas (chat_id, estado, ultimo_update) VALUES ($1::bigint, $2::jsonb, $3::bigint) ON CONFLICT (chat_id) DO UPDATE SET estado = EXCLUDED.estado, ultimo_update = EXCLUDED.ultimo_update, atualizado_em = now() RETURNING chat_id, $4::text AS texto;",
+        "options": {
+          "queryReplacement": "={{ [ $json.chat_id, JSON.stringify($json.estado), $json.update_id, $json.texto ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "xRB358Nv1hfm25RQ",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "id": "610c63bb-5a85-56b2-ab11-8767b962aa35",
+      "name": "Responder Telegram (coleta)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        3420,
+        -880
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { chat_id: $json.chat_id ?? null, texto: $json.texto ?? null } }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "44ab29f4-0189-588c-acef-f19d02e8a6b4",
+      "name": "Unir Caminhos",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        3760,
+        0
+      ],
+      "parameters": {
+        "numberInputs": 3
+      }
+    },
+    {
+      "id": "24d93620-db02-5622-a5d9-df372afd5158",
+      "name": "Montar Registro",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4000,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// =====================================================================\n// BLOCO 7 | MONTAR REGISTRO PARA O POSTGRESQL\n// Recebe os três caminhos unidos (gerais classificadas, logísticas com previsão e\n// pendentes/rejeitadas) e monta o JSON gravado pela função hub_registrar_demanda().\n// Situação final:\n//   processada | pendente | rejeitada | erro (falha técnica, ex.: IA sem modelo treinado)\n// =====================================================================\n\nconst RESPOSTA_INICIAL = {   // como a resposta é entregue em cada canal\n  web: ['enviada', 'Resposta devolvida na tela da aplicação web'],\n  pdf: ['enviada', 'Resposta devolvida na tela da aplicação web'],\n  telegram: ['enviada', 'Texto devolvido ao conector do Telegram para envio ao usuário'],\n  email: ['pendente', 'Aguardando envio por e-mail (SMTP)'],\n  csv: ['nao_aplicavel', 'Importação em lote: resultado exibido na Central de Controle'],\n  teste: ['nao_aplicavel', 'Caso de teste manual'],\n};\n\nreturn $input.all().map((item, idx) => {\n  const j = item.json;\n  const s = j.solicitante || {};\n  const n = j.normalizados || {};\n  const d = j.dados || {};\n  let status = j.status_validacao === 'valida' ? 'processada' : j.status_validacao;\n  if (j.tipo_demanda === 'logistica' && status === 'processada' && !j.previsao) status = 'erro';\n  const motivos = [...(j.motivos || [])];\n  if (j.erro_ia) motivos.push({ codigo: 'ERRO_IA', campo: 'ia', descricao: j.erro_ia });\n  const [respStatus, respDetalhe] = RESPOSTA_INICIAL[j.canal] || ['pendente', null];\n\n  const registro = {\n    chave_evento: j.chave_evento,\n    canal: j.canal,\n    tipo_demanda: j.tipo_demanda,\n    status,\n    solicitante_nome: n.nome || d.nome || s.nome || null,\n    solicitante_email: n.email || d.email || s.email || null,\n    solicitante_telefone: n.telefone || d.telefone || s.telefone || null,\n    telegram_chat_id: s.telegram_chat_id || null,\n    assunto: n.tipo || d.tipo || j.assunto || null,\n    descricao: n.observacao || d.observacao || j.texto || null,\n    categoria: j.categoria || null,\n    setor_responsavel: j.setor_responsavel || (j.tipo_demanda === 'logistica' ? 'Logística' : null),\n    regra_classificacao: j.regra_classificacao || (j.tipo_demanda === 'logistica' ? `caminho logístico: ${j.motivo_tipo}` : null),\n    motivos,\n    avisos: j.avisos_ia || [],\n    dados_originais: j.dados_originais,\n    dados_normalizados: { campos: d, origem_dos_campos: j.origem_dos_campos, normalizados: n, alteracoes: j.alteracoes || [], campos_nao_mapeados: Object.keys(j.campos_nao_mapeados || {}) },\n    arquivo_id: j.arquivo_id || null,\n    linha_arquivo: j.linha_arquivo || null,\n    resposta_status: respStatus,\n    resposta_detalhe: respDetalhe,\n    ambiente: j.ambiente,\n    recebido_em: j.recebido_em,\n    logistica: j.tipo_demanda === 'logistica' ? (j.atributos_ia || j.logistica_validada || {}) : null,\n    previsao: j.previsao || null,\n    eventos: [...(j.eventos || []), { etapa: 'registro', detalhe: `Situação final: ${status}` }],\n  };\n  return { json: { registro, contexto: { canal: j.canal, resposta: j.resposta || {}, tipo_demanda: j.tipo_demanda, status, campos_faltando: j.campos_faltando || [], motivos, previsao: j.previsao || null, setor: registro.setor_responsavel, categoria: registro.categoria, solicitante: registro.solicitante_nome, arquivo_id: j.arquivo_id || null, linha_arquivo: j.linha_arquivo || null, telegram: j.telegram || null } }, pairedItem: { item: idx } };\n});\n"
+      }
+    },
+    {
+      "id": "dc56e464-6e06-521d-a44d-8075d87e9333",
+      "name": "Gravar Demanda (PostgreSQL)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        4240,
+        0
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT hub_registrar_demanda($1::jsonb) AS r;",
+        "options": {
+          "queryReplacement": "={{ [ JSON.stringify($json.registro) ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "xRB358Nv1hfm25RQ",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "26d3a9e2-45da-5d6e-a861-614a6f9f8243",
+      "name": "Montar Resposta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4480,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// =====================================================================\n// BLOCO 8 | MONTAR RESPOSTA (mesmo conteúdo para todos os canais)\n// O canal de origem só muda COMO a resposta é entregue (tela web, Telegram, e-mail).\n//   Demanda geral     -> protocolo + setor responsável (SEM previsão logística)\n//   Demanda logística -> protocolo + previsão da árvore + aviso de caráter experimental\n//   Pendente/rejeitada-> protocolo + o que falta/corrigir\n//   Falha no banco    -> erro técnico (nenhum protocolo é inventado)\n// =====================================================================\n\nconst registros = $('Montar Registro').all();\nconst pct = (x) => `${Math.round(Number(x) * 100)}%`;\nconst descreverErro = (e) => (!e ? 'falha no banco de dados' : typeof e === 'string' ? e\n  : String(e.message || e.description || JSON.stringify(e)).slice(0, 300));\n\nreturn $input.all().map((item, i) => {\n  const ctx = registros[i].json.contexto;\n  const reg = registros[i].json.registro;\n  const r = item.json.r || item.json.resultado || null;          // retorno de hub_registrar_demanda()\n  const falhaBanco = !r || !r.protocolo;\n\n  const linhas = [];\n  let titulo; let situacao = ctx.status;\n  if (falhaBanco) {\n    situacao = 'erro_tecnico';\n    titulo = 'Não foi possível registrar sua solicitação agora';\n    linhas.push('Ocorreu uma falha técnica ao gravar no banco de dados. Nenhum protocolo foi gerado. Tente novamente em instantes.');\n  } else if (ctx.status === 'pendente') {\n    titulo = 'Solicitação recebida — faltam informações';\n    linhas.push(`Protocolo: ${r.protocolo}`, 'Para continuar, precisamos de:', ...ctx.motivos.filter((m) => m.codigo !== 'IGNORADO').map((m) => `• ${m.descricao}`));\n  } else if (ctx.status === 'rejeitada') {\n    titulo = 'Solicitação recebida, mas com dados inválidos';\n    linhas.push(`Protocolo: ${r.protocolo}`, 'Corrija e envie novamente:', ...ctx.motivos.filter((m) => m.codigo !== 'IGNORADO').map((m) => `• ${m.descricao}`));\n  } else if (ctx.status === 'erro') {\n    titulo = 'Solicitação registrada — análise da IA indisponível';\n    linhas.push(`Protocolo: ${r.protocolo}`, 'Sua demanda logística foi registrada, mas a previsão não pôde ser gerada agora. A equipe de Logística fará a análise.');\n  } else if (ctx.tipo_demanda === 'geral') {\n    titulo = 'Solicitação recebida e encaminhada';\n    linhas.push(`Protocolo: ${r.protocolo}`, `Encaminhada ao setor: ${ctx.setor}`, `Assunto identificado: ${ctx.categoria}`, 'O setor responsável dará continuidade ao atendimento.');\n  } else {\n    const p = ctx.previsao;\n    titulo = 'Demanda de frete recebida e analisada';\n    linhas.push(\n      `Protocolo: ${r.protocolo}`,\n      `Previsão da IA: ${p.rotulo.toUpperCase()}`,\n      `Frequência de atendimento em casos semelhantes do histórico: ${pct(p.prob_atendida)} (${p.explicacao.folha.sim} de ${p.explicacao.folha.n})`,\n      `Principais fatores: ${p.explicacao.atributos_decisivos.map((a) => a.rotulo).join(', ')}`,\n      p.explicacao.resumo,\n      '',\n      'Importante: esta é uma previsão EXPERIMENTAL. A demanda foi registrada e analisada — o frete ainda NÃO está contratado. A decisão final é da equipe de operação.',\n    );\n  }\n  if (r && r.duplicado) linhas.push('', '(Este envio já havia sido recebido; mantivemos o registro original.)');\n  const textoFinal = [titulo, '', ...linhas].join('\\n');\n\n  return { json: {\n    canal: ctx.canal,\n    demanda_id: r ? r.id : null,\n    protocolo: r ? r.protocolo : null,\n    duplicado: !!(r && r.duplicado),\n    situacao,\n    tipo_demanda: ctx.tipo_demanda,\n    titulo,\n    texto: textoFinal,\n    // dados para a tela web\n    resultado: {\n      ok: !falhaBanco, protocolo: r ? r.protocolo : null, situacao, tipo_demanda: ctx.tipo_demanda,\n      setor: ctx.tipo_demanda === 'geral' ? ctx.setor : null, categoria: ctx.categoria,\n      previsao: ctx.tipo_demanda === 'logistica' ? ctx.previsao : null,\n      motivos: ctx.motivos, titulo, mensagem: linhas.join('\\n'), duplicado: !!(r && r.duplicado),\n      erro_tecnico: falhaBanco ? descreverErro(item.json.error) : null,\n    },\n    // entrega por canal\n    email_destino: ctx.resposta.email || null,\n    email_assunto: ctx.resposta.assunto || 'Rodomax HUB — sua solicitação',\n    chat_id: ctx.resposta.chat_id || null,\n    update_id: ctx.resposta.update_id || null,\n    arquivo_id: ctx.arquivo_id,\n    linha_arquivo: ctx.linha_arquivo,\n    previsao_classe: ctx.previsao ? ctx.previsao.classe : null,\n    descricao_curta: (reg.descricao || '').slice(0, 80),\n  }, pairedItem: { item: i } };\n});\n"
+      }
+    },
+    {
+      "id": "748867e0-8395-574e-a6e0-7b3c05a82994",
+      "name": "Responder por Canal",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        4720,
+        0
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "f9983fb2-12aa-5925-a6dc-1e0b7cb49361",
+                    "leftValue": "={{ ['web', 'pdf'].includes($json.canal) }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Web / PDF"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "045ab290-7ceb-57c3-aea7-d550b275753e",
+                    "leftValue": "={{ $json.canal === 'telegram' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Telegram"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "5f511903-5d67-5ae7-a200-5fae4fe2a0e1",
+                    "leftValue": "={{ $json.canal === 'email' && !$json.duplicado }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "E-mail"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "ebf3373d-6f67-5880-a6f8-905e07e80f91",
+                    "leftValue": "={{ $json.canal === 'csv' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Lote CSV"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "16075e99-42af-5c4d-a00d-bd0525f482e4",
+                    "leftValue": "={{ $json.canal === 'teste' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Teste manual"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "afa93ace-8e19-5854-ad82-22e92b8f3d69",
+      "name": "Responder Web",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        5040,
+        -420
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.resultado }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "4fba4721-7989-5fd2-a7f2-e46ef8c0289a",
+      "name": "Encerrar Conversa Telegram",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        5040,
+        -220
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO telegram_conversas (chat_id, estado, ultimo_update) VALUES ($1::bigint, '{}'::jsonb, $2::bigint) ON CONFLICT (chat_id) DO UPDATE SET estado = '{}'::jsonb, ultimo_update = EXCLUDED.ultimo_update, atualizado_em = now() RETURNING chat_id, $3::text AS texto;",
+        "options": {
+          "queryReplacement": "={{ [ $json.chat_id, $json.update_id, $json.texto ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "xRB358Nv1hfm25RQ",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "5160f78d-4a2e-552a-a5f7-721fe2116227",
+      "name": "Responder Telegram (resultado)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        5280,
+        -220
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { chat_id: $json.chat_id ?? $('Montar Resposta').first().json.chat_id, texto: $json.texto ?? $('Montar Resposta').first().json.texto } }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "fe7af7a2-2cb8-5ecd-afa0-06ece0c911d5",
+      "name": "Enviar Resposta por E-mail",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        5040,
+        -20
+      ],
+      "disabled": true,
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true,
+      "parameters": {
+        "fromEmail": "CONFIGURAR_SEU_EMAIL@gmail.com",
+        "toEmail": "={{ $json.email_destino }}",
+        "subject": "={{ $json.email_assunto }}",
+        "emailFormat": "text",
+        "text": "={{ $json.texto }}",
+        "options": {
+          "appendAttribution": false
+        }
+      }
+    },
+    {
+      "id": "0a948450-ccc5-54b0-ae10-a456a1b0e77e",
+      "name": "Verificar Envio do E-mail",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5280,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "// =====================================================================\n// BLOCO 10 | VERIFICAR ENVIO DO E-MAIL\n// O node \"Enviar Resposta por E-mail\" continua mesmo se falhar (On Error: continuar).\n// Aqui descobrimos o que aconteceu e registramos — a demanda NUNCA é apagada:\n//   accepted preenchido -> \"enviada\"\n//   error               -> \"nao_enviada\" (motivo registrado)\n//   node desativado     -> \"nao_enviada\" (envio por e-mail ainda não configurado)\n// =====================================================================\n\nconst originais = $('Responder por Canal').all(2);   // saída 2 do Switch = e-mail\nreturn $input.all().map((item, i) => {\n  const r = item.json || {};\n  const o = (originais[i] || item).json;\n  let status; let detalhe;\n  if (Array.isArray(r.accepted) && r.accepted.length) { status = 'enviada'; detalhe = `SMTP aceitou para ${r.accepted.join(', ')}`; }\n  else if (r.error) { status = 'nao_enviada'; detalhe = `Falha no envio: ${String(r.error.message || r.error).slice(0, 300)}`; }\n  else { status = 'nao_enviada'; detalhe = 'Envio por e-mail desativado no workflow (configure a credencial SMTP e ative o node).'; }\n  return { json: { demanda_id: o.demanda_id, protocolo: o.protocolo, status, detalhe }, pairedItem: { item: i } };\n});\n"
+      }
+    },
+    {
+      "id": "414ead5b-3d49-5891-a0d9-d0626d22ac06",
+      "name": "Registrar Envio do E-mail",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        5520,
+        -20
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT hub_registrar_resposta($1::bigint, $2, $3) AS r;",
+        "options": {
+          "queryReplacement": "={{ [ $json.demanda_id, $json.status, $json.detalhe ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "xRB358Nv1hfm25RQ",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "601e120f-8d5f-59a5-ad72-f75bb70e570a",
+      "name": "Atualizar Contadores do Lote",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        5040,
+        180
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT hub_atualizar_arquivo($1::int) AS lote;",
+        "options": {
+          "queryReplacement": "={{ [ $json.arquivo_id ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "xRB358Nv1hfm25RQ",
+          "name": "Postgres account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "360b70c1-0ea2-58d0-a9f4-7aea5f89cbdd",
+      "name": "Resumo do Lote CSV",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5280,
+        180
+      ],
+      "parameters": {
+        "jsCode": "// =====================================================================\n// BLOCO 8 | RESUMO DO LOTE CSV\n// Um CSV é UM arquivo com N registros. A resposta informa, para o arquivo:\n// lidos, processados, pendentes, rejeitados, com erro e as previsões da IA.\n// Contadores oficiais vêm do banco (hub_atualizar_arquivo); detalhes, desta execução.\n// =====================================================================\n\nconst lote = $input.first().json.lote || {};\nconst itens = $('Montar Resposta').all().map((i) => i.json).filter((j) => j.canal === 'csv');\nconst contar = (f) => itens.filter(f).length;\n\nreturn [{ json: {\n  ok: true,\n  arquivo_id: lote.arquivo_id,\n  nome_arquivo: lote.nome_arquivo,\n  finalidade: 'novas_demandas',\n  registros_lidos: lote.registros_total,\n  registros_importados: lote.registros_importados,\n  registros_rejeitados: lote.registros_rejeitados,\n  nesta_execucao: {\n    processadas: contar((j) => j.situacao === 'processada'),\n    pendentes: contar((j) => j.situacao === 'pendente'),\n    rejeitadas: contar((j) => j.situacao === 'rejeitada'),\n    com_erro: contar((j) => j.situacao === 'erro' || j.situacao === 'erro_tecnico'),\n    duplicadas_ignoradas: contar((j) => j.duplicado),\n    gerais: contar((j) => j.tipo_demanda === 'geral'),\n    logisticas: contar((j) => j.tipo_demanda === 'logistica'),\n    previsao_atendida: contar((j) => j.previsao_classe === 'sim'),\n    previsao_nao_atendida: contar((j) => j.previsao_classe === 'nao'),\n  },\n  amostra: itens.slice(0, 25).map((j) => ({ linha: j.linha_arquivo, protocolo: j.protocolo, situacao: j.situacao, tipo: j.tipo_demanda, previsao: j.previsao_classe, mensagem: j.resultado.mensagem.split('\\n').slice(0, 3).join(' | ') })),\n} }];\n"
+      }
+    },
+    {
+      "id": "03ce29a5-5dee-5750-a42a-57771a3311fc",
+      "name": "Responder Importação CSV",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        5520,
+        180
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "6374ff78-307c-5fb7-a62a-e79348d24348",
+      "name": "Fim dos Casos de Teste",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        5040,
+        380
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "46143905-7af7-5ef1-a805-9073657de25f",
+      "name": "Webhook Consulta",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        1240
+      ],
+      "webhookId": "97452a6b-9361-5ea1-ac04-80afea8edc9f",
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "rodomax/consulta",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "53550aa8-621b-5a85-ab46-9d8dbf20ccff",
+      "name": "Tipo de Consulta",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        240,
+        1240
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "78b614a2-ba1e-5ffd-a427-fec81010c0a7",
+                    "leftValue": "={{ $json.query.tipo === 'dashboard' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "dashboard"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "a9066d5f-23ef-5956-a1be-7c0f8d9fab05",
+                    "leftValue": "={{ $json.query.tipo === 'demandas' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "demandas"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "3a2d0ded-a9dd-540e-aea1-899d5613a242",
+                    "leftValue": "={{ $json.query.tipo === 'demanda' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "demanda"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "71043c49-3274-57b8-a24d-b3d3f073024c",
+                    "leftValue": "={{ $json.query.tipo === 'arquivos' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "arquivos"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "15839786-b374-5837-ad9e-9278d48541ca",
+                    "leftValue": "={{ $json.query.tipo === 'modelo' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "modelo"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "Outro"
+        }
+      }
+    },
+    {
+      "id": "c6e8d65b-7376-5492-a58a-b250f1f19a81",
+      "name": "Consultar Dashboard",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        560,
+        1120
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT hub_dashboard() AS resultado;",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "xRB358Nv1hfm25RQ",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "id": "cbdc0d10-33f8-53ec-aacb-cc4198e9e9f2",
+      "name": "Consultar Demandas",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        560,
+        1220
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT hub_listar_demandas($1::jsonb) AS resultado;",
+        "options": {
+          "queryReplacement": "={{ [ JSON.stringify($json.query) ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "xRB358Nv1hfm25RQ",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "id": "951b83ce-f3ec-5826-a80a-d6422d3d60d3",
+      "name": "Consultar Protocolo",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        560,
+        1320
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT hub_detalhe_demanda($1) AS resultado;",
+        "options": {
+          "queryReplacement": "={{ [ $json.query.protocolo || '' ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "xRB358Nv1hfm25RQ",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "id": "d88f787f-8570-5cdb-a17c-ee044d41646c",
+      "name": "Consultar Arquivos",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        560,
+        1420
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT hub_listar_arquivos() AS resultado;",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "xRB358Nv1hfm25RQ",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "id": "55eee00e-5d8e-57fa-a348-f5a0d6a59a92",
+      "name": "Consultar Modelo",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        560,
+        1520
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT hub_modelo_ativo() AS resultado;",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "xRB358Nv1hfm25RQ",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "id": "c2e6e66a-9afb-5eb4-abe1-d4fb18e6b39e",
+      "name": "Responder Consulta",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        880,
+        1320
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, dados: $json.resultado } }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "160f2804-c868-5e44-a965-a21ab7f256c5",
+      "name": "Consulta Inválida",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        560,
+        1620
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: false, erro: 'Parâmetro tipo inválido. Use dashboard, demandas, demanda, arquivos ou modelo.' } }}",
+        "options": {
+          "responseCode": 400
+        }
+      }
+    },
+    {
+      "id": "ccda2a07-b9c3-5b7a-ad34-f53bfe72beec",
+      "name": "Webhook Treinar IA",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        1720
+      ],
+      "webhookId": "21d7ae4c-64e6-5fcc-a0f0-7a7bd707684d",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "rodomax/ia/treinar",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "127f1053-9746-5aa5-af48-a88b6bfaae4b",
+      "name": "Execução Manual (treino + testes)",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        1880
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "9846423d-af24-5825-af15-036589f0f5bb",
+      "name": "Ler Base Histórica",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        240,
+        1760
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT COALESCE(jsonb_agg(to_jsonb(h) ORDER BY h.id_demanda), '[]'::jsonb) AS registros FROM ia_historico h;",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "xRB358Nv1hfm25RQ",
+          "name": "Postgres account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "b568f130-d42e-5fc9-a371-ee4249d15aaf",
+      "name": "IA 1 - Preparar Dados Históricos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        1760
+      ],
+      "parameters": {
+        "jsCode": "// =====================================================================================\n// BLOCO IA | IA 1 - PREPARAR DADOS HISTÓRICOS  (evolução do \"IA 2 - Preparar e Separar\")\n// Base: tabela ia_historico (importada do rodomax_demandas.csv da professora). Sem dados sintéticos.\n// 1) confere tipos, ausentes e valores inválidos (registros problemáticos são excluídos e CONTADOS);\n// 2) analisa VAZAMENTO DE INFORMAÇÃO em status_agendamento (tabela cruzada com \"atendida\");\n// 3) monta os atributos do modelo (+ atributo derivado frete_por_km);\n// 4) separa treino (80%) e teste (20%) de forma ESTRATIFICADA, com semente fixa.\n// =====================================================================================\n\nconst SEMENTE_SEPARACAO = 42;   // semente fixa => a mesma separação em toda execução\nconst PROPORCAO_TESTE = 0.20;   // 80% treino / 20% teste\nconst MINIMO_REGISTROS = 50;\nconst CLASSES = ['sim', 'nao'];  // valores da coluna alvo \"atendida\"\n\n// Atributos de ENTRADA do modelo. Excluídos de propósito (ver IA_E_AVALIACAO.md):\n//   id_demanda          -> identificador, não tem significado preditivo\n//   status_agendamento  -> VAZAMENTO: o agendamento é consequência do atendimento\n//   canal               -> canal de recebimento histórico (WhatsApp/planilha...); não descreve a carga\n//                          e os canais atuais (Telegram/Web) não existem no histórico\n//   atendida            -> é a variável ALVO\nconst ATRIBUTOS = [\n  { nome: 'produto',         tipo: 'cat', descricao: 'Produto transportado (MILHO, SOJA)' },\n  { nome: 'uf_origem',       tipo: 'cat', descricao: 'UF de origem da carga' },\n  { nome: 'destino',         tipo: 'cat', descricao: 'Cidade de destino' },\n  { nome: 'balanca',         tipo: 'cat', descricao: 'Restrição de balança (20m, 25m, 30m, sem_restricao)' },\n  { nome: 'distancia_km',    tipo: 'num', descricao: 'Distância da viagem (km)' },\n  { nome: 'frete_ton',       tipo: 'num', descricao: 'Valor do frete por tonelada (R$)' },\n  { nome: 'saldo_ton',       tipo: 'num', descricao: 'Saldo de carga a transportar (t)' },\n  { nome: 'estrada_chao_km', tipo: 'num', descricao: 'Trecho em estrada de chão (km)' },\n  { nome: 'antecedencia_h',  tipo: 'num', descricao: 'Antecedência do pedido (horas)' },\n  { nome: 'frete_por_km',    tipo: 'num', descricao: 'Derivado: frete_ton / distancia_km (R$ por t·km)' },\n];\n// O MESMO cálculo é repetido no node \"Prever Atendimento\" (precisa ser idêntico)\nconst derivar = (r) => ({ ...r, frete_por_km: Math.round((r.frete_ton / r.distancia_km) * 10000) / 10000 });\n\nconst linhas = ($input.first().json.registros) || [];\nif (linhas.length < MINIMO_REGISTROS) {\n  // não lança exceção: devolve o erro para o node \"Base Suficiente?\" responder de forma clara\n  return [{ json: { ok: false, erro: `Base histórica com ${linhas.length} registro(s). Importe o rodomax_demandas.csv (finalidade \"Base histórica\") antes de treinar — mínimo ${MINIMO_REGISTROS}.` } }];\n}\n\n// ---------- 1) conferência de qualidade ----------\nconst NUMERICOS = ATRIBUTOS.filter((a) => a.tipo === 'num' && a.nome !== 'frete_por_km').map((a) => a.nome);\nconst CATEGORICOS = ATRIBUTOS.filter((a) => a.tipo === 'cat').map((a) => a.nome);\nconst ausentes = Object.fromEntries([...NUMERICOS, ...CATEGORICOS, 'atendida'].map((c) => [c, 0]));\nconst excluidos = [];\nconst base = [];\nfor (const l of linhas) {\n  const r = { id_demanda: Number(l.id_demanda), status_agendamento: l.status_agendamento, canal: l.canal };\n  let ok = true;\n  for (const c of NUMERICOS) {\n    const v = l[c] === null || l[c] === undefined || l[c] === '' ? NaN : Number(l[c]);\n    if (Number.isNaN(v)) { ausentes[c]++; ok = false; } else r[c] = v;\n  }\n  for (const c of CATEGORICOS) {\n    const v = String(l[c] ?? '').trim();\n    if (!v) { ausentes[c]++; ok = false; } else r[c] = v;\n  }\n  r.atendida = String(l.atendida ?? '').trim().toLowerCase();\n  if (!CLASSES.includes(r.atendida)) { ausentes.atendida++; ok = false; }\n  if (ok && (r.distancia_km <= 0 || r.frete_ton <= 0 || r.saldo_ton <= 0 || r.estrada_chao_km < 0 || r.antecedencia_h < 0)) ok = false;\n  if (ok) base.push(derivar(r)); else excluidos.push(l.id_demanda);\n}\nconst contar = (lista) => Object.fromEntries(CLASSES.map((c) => [c, lista.filter((r) => r.atendida === c).length]));\n\n// ---------- 2) análise de vazamento: status_agendamento x atendida ----------\nconst cruzada = {};\nfor (const r of base) {\n  const s = r.status_agendamento || '(vazio)';\n  cruzada[s] = cruzada[s] || { sim: 0, nao: 0 };\n  cruzada[s][r.atendida]++;\n}\nconst vazamento = Object.entries(cruzada).map(([status, c]) => ({\n  status_agendamento: status, sim: c.sim, nao: c.nao,\n  percentual_atendida: Math.round((1000 * c.sim) / (c.sim + c.nao)) / 10,\n}));\n\n// ---------- 3) estatísticas descritivas (para o relatório) ----------\nconst descritiva = {};\nfor (const c of [...NUMERICOS, 'frete_por_km']) {\n  const v = base.map((r) => r[c]).sort((a, b) => a - b);\n  const media = v.reduce((s, x) => s + x, 0) / v.length;\n  descritiva[c] = { min: v[0], max: v[v.length - 1], media: Math.round(media * 100) / 100, mediana: v[Math.floor(v.length / 2)] };\n}\nconst dominios = {};\nfor (const c of CATEGORICOS) dominios[c] = [...new Set(base.map((r) => r[c]))].sort();\n\n// ---------- 4) separação estratificada treino/teste ----------\nfunction criarGerador(semente) {   // mulberry32 (mesmo gerador da 1ª versão)\n  let a = semente >>> 0;\n  return function () {\n    a = (a + 0x6D2B79F5) >>> 0; let t = a;\n    t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61);\n    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;\n  };\n}\nconst rnd = criarGerador(SEMENTE_SEPARACAO);\nfunction embaralhar(lista) { const v = lista.slice(); for (let i = v.length - 1; i > 0; i--) { const k = Math.floor(rnd() * (i + 1)); [v[i], v[k]] = [v[k], v[i]]; } return v; }\nconst ordenada = base.slice().sort((a, b) => a.id_demanda - b.id_demanda);   // independe da ordem de leitura\nconst treino = []; const teste = [];\nfor (const classe of CLASSES) {\n  const grupo = embaralhar(ordenada.filter((r) => r.atendida === classe));\n  const nTeste = Math.round(grupo.length * PROPORCAO_TESTE);\n  teste.push(...grupo.slice(0, nTeste));\n  treino.push(...grupo.slice(nTeste));\n}\nconst faixas = {};\nfor (const c of [...NUMERICOS, 'frete_por_km']) faixas[c] = { min: Math.min(...treino.map((r) => r[c])), max: Math.max(...treino.map((r) => r[c])) };\n\nreturn [{ json: {\n  ok: true,\n  atributos: ATRIBUTOS,\n  classes: CLASSES,\n  treino,\n  teste,\n  preparacao: {\n    fonte: 'ia_historico (rodomax_demandas.csv)',\n    registros_lidos: linhas.length,\n    registros_utilizados: base.length,\n    registros_excluidos: excluidos.length,\n    ids_excluidos: excluidos.slice(0, 50),\n    ausentes_por_campo: ausentes,\n    distribuicao_classes: contar(base),\n    atributos_excluidos: [\n      { atributo: 'id_demanda', motivo: 'identificador sem significado preditivo' },\n      { atributo: 'status_agendamento', motivo: 'vazamento de informação: reflete o resultado (ver tabela cruzada)' },\n      { atributo: 'canal', motivo: 'canal histórico (WhatsApp/planilha/e-mail/webhook) não descreve a carga; canais atuais (Telegram/Web) não existem no histórico' },\n    ],\n    atributo_derivado: 'frete_por_km = frete_ton / distancia_km',\n    vazamento_status_agendamento: vazamento,\n    descritiva,\n    dominios,\n    faixas,\n    semente_separacao: SEMENTE_SEPARACAO,\n    proporcao_teste: PROPORCAO_TESTE,\n    estratificada: true,\n    treino: { registros: treino.length, classes: contar(treino) },\n    teste: { registros: teste.length, classes: contar(teste) },\n  },\n} }];\n"
+      }
+    },
+    {
+      "id": "6d1c4240-600e-5917-ade3-946a402007b9",
+      "name": "Base Suficiente?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        720,
+        1760
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "47c18c2c-17dd-5855-a2be-85bb722059dc",
+              "leftValue": "={{ $json.ok === true }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "0b76adca-16d5-5b05-a632-e19511c1c025",
+      "name": "IA 2 - Treinar Árvore CART (Gini)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        1700
+      ],
+      "parameters": {
+        "jsCode": "// =====================================================================================\n// BLOCO IA | IA 2 - TREINAR ÁRVORE DE DECISÃO (CART com índice Gini, JavaScript puro)\n// (evolução do node \"IA 3 - Treinar Árvore (Gini)\" da versão anterior)\n//\n// Aprendizado supervisionado: a árvore aprende, SÓ com o conjunto de TREINO, quais perguntas\n// melhor separam \"atendida = sim\" de \"atendida = nao\". Nenhuma regra é escrita à mão.\n//\n// Algoritmo CART (para cada nó, recursivamente):\n//   1. impureza de Gini do nó:  Gini = 1 - Σ p(classe)²\n//   2. testa as divisões possíveis de cada atributo:\n//        numérico:   \"atributo <= limiar\"   (limiar = ponto médio entre valores consecutivos)\n//        categórico: \"atributo ∈ {grupo}\"  (categorias ordenadas pela proporção de \"nao\";\n//                     para alvo binário isso encontra a melhor partição — Breiman et al., 1984)\n//   3. escolhe a divisão de maior GANHO = Gini(pai) - média ponderada dos Gini dos filhos\n//   4. divide e repete; vira FOLHA ao atingir profundidade máxima, poucos registros,\n//      nó puro ou nenhuma divisão com ganho.\n//\n// Escolha da profundidade: VALIDAÇÃO CRUZADA (5 partes) feita APENAS no treino. O conjunto\n// de teste fica guardado para a avaliação final (no node seguinte).\n// =====================================================================================\n\nconst PARAMETROS = {\n  criterio: 'gini',\n  profundidades_avaliadas: [2, 3, 4, 5, 6, 7, 8],\n  min_amostras_divisao: 10,     // nó com menos registros que isso não é dividido\n  min_amostras_folha: 5,        // cada folha precisa ter pelo menos isso\n  ganho_minimo: 1e-6,\n  folds_validacao_cruzada: 5,\n  semente_folds: 7,\n};\n\nconst d = $input.first().json;\nconst CLASSES = d.classes;               // ['sim', 'nao']\nconst ALVO = 'atendida';\n\n// --------------------------- CART ---------------------------\nfunction contarClasses(regs) { const c = { sim: 0, nao: 0 }; for (const r of regs) c[r[ALVO]]++; return c; }\nfunction gini(c, n) { if (n === 0) return 0; let s = 0; for (const k of CLASSES) s += (c[k] / n) ** 2; return 1 - s; }\nconst majoritaria = (c) => (c.nao > c.sim ? 'nao' : 'sim');   // empate -> 'sim'\nconst testar = (r, dv) => (dv.op === '<=' ? r[dv.atributo] <= dv.valor : dv.valor.includes(r[dv.atributo]));\n\nfunction melhorDivisao(regs, atributos, p) {\n  const n = regs.length; const cPai = contarClasses(regs); const gPai = gini(cPai, n);\n  let melhor = null;\n  const avaliar = (atributo, op, valor, cEsq, nEsq) => {\n    const nDir = n - nEsq;\n    if (nEsq < p.min_amostras_folha || nDir < p.min_amostras_folha) return;\n    const cDir = { sim: cPai.sim - cEsq.sim, nao: cPai.nao - cEsq.nao };\n    const ganho = gPai - ((nEsq / n) * gini(cEsq, nEsq) + (nDir / n) * gini(cDir, nDir));\n    if (ganho > p.ganho_minimo && (!melhor || ganho > melhor.ganho + 1e-12)) melhor = { atributo, op, valor, ganho };\n  };\n  for (const a of atributos) {\n    if (a.tipo === 'num') {\n      const ord = regs.slice().sort((x, y) => x[a.nome] - y[a.nome]);\n      const cEsq = { sim: 0, nao: 0 };\n      for (let i = 0; i < n - 1; i++) {\n        cEsq[ord[i][ALVO]]++;\n        const v1 = ord[i][a.nome]; const v2 = ord[i + 1][a.nome];\n        if (v1 === v2) continue;\n        avaliar(a.nome, '<=', Math.round(((v1 + v2) / 2) * 10000) / 10000, { ...cEsq }, i + 1);\n      }\n    } else {\n      const porCat = {};\n      for (const r of regs) { const v = r[a.nome]; porCat[v] = porCat[v] || { sim: 0, nao: 0 }; porCat[v][r[ALVO]]++; }\n      const cats = Object.keys(porCat).sort((x, y) => {\n        const px = porCat[x].nao / (porCat[x].sim + porCat[x].nao); const py = porCat[y].nao / (porCat[y].sim + porCat[y].nao);\n        return px - py || (x < y ? -1 : 1);\n      });\n      const cEsq = { sim: 0, nao: 0 }; let nEsq = 0;\n      for (let i = 0; i < cats.length - 1; i++) {\n        cEsq.sim += porCat[cats[i]].sim; cEsq.nao += porCat[cats[i]].nao; nEsq += porCat[cats[i]].sim + porCat[cats[i]].nao;\n        avaliar(a.nome, 'in', cats.slice(0, i + 1), { ...cEsq }, nEsq);\n      }\n    }\n  }\n  return melhor;\n}\n\nfunction construir(regs, prof, atributos, p, importancia, nTotal) {\n  const n = regs.length; const c = contarClasses(regs); const g = gini(c, n);\n  const folha = { tipo: 'folha', classe: majoritaria(c), n, contagem: c, gini: Math.round(g * 1000) / 1000 };\n  if (prof >= p.profundidade_maxima || n < p.min_amostras_divisao || g === 0) return folha;\n  const dv = melhorDivisao(regs, atributos, p);\n  if (!dv) return folha;\n  if (importancia) importancia[dv.atributo] += (n / nTotal) * dv.ganho;\n  const esq = regs.filter((r) => testar(r, dv)); const dir = regs.filter((r) => !testar(r, dv));\n  return {\n    tipo: 'divisao', atributo: dv.atributo, op: dv.op, valor: dv.valor, n, contagem: c,\n    gini: Math.round(g * 1000) / 1000, ganho: Math.round(dv.ganho * 10000) / 10000,\n    esquerda: construir(esq, prof + 1, atributos, p, importancia, nTotal),   // condição verdadeira\n    direita: construir(dir, prof + 1, atributos, p, importancia, nTotal),    // condição falsa\n  };\n}\nfunction prever(no, r) { while (no.tipo === 'divisao') no = testar(r, no) ? no.esquerda : no.direita; return no.classe; }\nfunction treinar(regs, atributos, p, importancia) { return construir(regs, 0, atributos, p, importancia, regs.length); }\nconst acuracia = (arv, regs) => regs.filter((r) => prever(arv, r) === r[ALVO]).length / regs.length;\n\n// ------------------- validação cruzada (somente no treino) -------------------\nfunction criarGerador(semente) { let a = semente >>> 0; return function () { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }\nconst rnd = criarGerador(PARAMETROS.semente_folds);\nconst K = PARAMETROS.folds_validacao_cruzada;\nconst folds = Array.from({ length: K }, () => []);\nfor (const classe of CLASSES) {   // folds estratificados\n  const grupo = d.treino.filter((r) => r[ALVO] === classe).sort((a, b) => a.id_demanda - b.id_demanda);\n  for (let i = grupo.length - 1; i > 0; i--) { const k = Math.floor(rnd() * (i + 1)); [grupo[i], grupo[k]] = [grupo[k], grupo[i]]; }\n  grupo.forEach((r, i) => folds[i % K].push(r));\n}\nconst media = (v) => v.reduce((s, x) => s + x, 0) / v.length;\nconst desvio = (v) => { const m = media(v); return Math.sqrt(media(v.map((x) => (x - m) ** 2))); };\nconst r3 = (x) => Math.round(x * 1000) / 1000;\n\nconst validacao = PARAMETROS.profundidades_avaliadas.map((prof) => {\n  const p = { ...PARAMETROS, profundidade_maxima: prof };\n  const accs = folds.map((_, k) => {\n    const tr = folds.filter((__, i) => i !== k).flat();\n    return acuracia(treinar(tr, d.atributos, p), folds[k]);\n  });\n  return { profundidade_maxima: prof, acuracia_media: r3(media(accs)), desvio_padrao: r3(desvio(accs)), por_fold: accs.map(r3) };\n});\n// melhor média; empate (diferença < 0,005) -> a árvore MAIS RASA (mais simples de explicar)\nconst melhorMedia = Math.max(...validacao.map((v) => v.acuracia_media));\nconst escolhida = validacao.find((v) => melhorMedia - v.acuracia_media < 0.005);\nconst PARAMS_FINAIS = { ...PARAMETROS, profundidade_maxima: escolhida.profundidade_maxima };\n\n// ------------------- treino final com todo o conjunto de treino -------------------\nconst importancia = Object.fromEntries(d.atributos.map((a) => [a.nome, 0]));\nconst arvore = treinar(d.treino, d.atributos, PARAMS_FINAIS, importancia);\n\n// ------------------- experimento de VAZAMENTO (somente para documentação) -------------------\n// Mesma técnica, mesmos parâmetros, mas INCLUINDO status_agendamento. Se a acurácia saltar,\n// confirma que o atributo \"entrega a resposta\" e por isso NÃO é usado no modelo oficial.\nconst atributosComVazamento = [...d.atributos, { nome: 'status_agendamento', tipo: 'cat' }];\nconst arvoreVazamento = treinar(d.treino, atributosComVazamento, PARAMS_FINAIS);\nconst experimentoVazamento = {\n  descricao: 'Árvore treinada INCLUINDO status_agendamento (não utilizada em produção)',\n  acuracia_teste: r3(acuracia(arvoreVazamento, d.teste)),\n  primeira_pergunta: arvoreVazamento.tipo === 'divisao' ? `${arvoreVazamento.atributo} ${arvoreVazamento.op} ${JSON.stringify(arvoreVazamento.valor)}` : 'folha',\n};\n\n// ------------------- resumo e texto da árvore -------------------\nlet nNos = 0; let nFolhas = 0; let profReal = 0;\n(function percorrer(no, p) { nNos++; profReal = Math.max(profReal, p); if (no.tipo === 'folha') { nFolhas++; return; } percorrer(no.esquerda, p + 1); percorrer(no.direita, p + 1); })(arvore, 0);\nconst fmt = (no) => (no.op === '<=' ? `${no.atributo} <= ${no.valor}` : `${no.atributo} ∈ {${no.valor.join(', ')}}`);\nconst linhas = [];\n(function imprimir(no, recuo) {\n  if (no.tipo === 'folha') { linhas.push(`${recuo}=> atendida=${no.classe}  (n=${no.n}; sim=${no.contagem.sim}, nao=${no.contagem.nao})`); return; }\n  linhas.push(`${recuo}${fmt(no)}  [n=${no.n}, gini=${no.gini}, ganho=${no.ganho}]`);\n  imprimir(no.esquerda, recuo + '|  sim: '); imprimir(no.direita, recuo + '|  não: ');\n})(arvore, '');\nconst soma = Object.values(importancia).reduce((a, b) => a + b, 0) || 1;\nconst importancias = Object.entries(importancia)\n  .map(([atributo, v]) => ({ atributo, importancia: r3(v / soma) }))\n  .sort((a, b) => b.importancia - a.importancia);\n\nreturn [{ json: {\n  ...d,\n  modelo: {\n    algoritmo: 'Árvore de Decisão CART (índice Gini) — JavaScript puro no n8n',\n    parametros: PARAMS_FINAIS,\n    validacao_cruzada: { folds: K, resultados: validacao, profundidade_escolhida: escolhida.profundidade_maxima,\n      criterio: 'maior acurácia média nos 5 folds do TREINO; empate (< 0,5 p.p.) favorece a árvore mais rasa' },\n    nos: nNos, folhas: nFolhas, profundidade_real: profReal,\n    importancias,\n    arvore_texto: linhas.join('\\n'),\n    arvore,\n    experimento_vazamento: experimentoVazamento,\n  },\n} }];\n"
+      }
+    },
+    {
+      "id": "bf693b31-d6a0-5d64-a73e-e368081c4fae",
+      "name": "IA 3 - Avaliar Modelo e Linha de Base",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        1700
+      ],
+      "parameters": {
+        "jsCode": "// =====================================================================================\n// BLOCO IA | IA 3 - AVALIAR O MODELO E MONTAR O REGISTRO  (evolução do \"IA 4 - Avaliar\")\n// Usa o conjunto de TESTE (20%, nunca visto no treino nem na validação cruzada).\n// Todas as métricas são calculadas aqui a partir das previsões; nenhum número é digitado.\n//   Classe positiva = \"nao\" (NÃO atendida): é o risco que a operação quer detectar.\n//   Precisão = dos casos apontados como \"nao\", quantos realmente eram \"nao\".\n//   Recall   = dos casos que realmente eram \"nao\", quantos o modelo encontrou.\n//   F1       = média harmônica de precisão e recall.\n//   Linha de base: prever SEMPRE a classe mais frequente do TREINO.\n// =====================================================================================\n\nconst d = $input.first().json;\nconst POS = 'nao'; const NEG = 'sim'; const ALVO = 'atendida';\nconst arvore = d.modelo.arvore;\nconst testar = (r, no) => (no.op === '<=' ? r[no.atributo] <= no.valor : no.valor.includes(r[no.atributo]));\nfunction folhaDe(no, r) { while (no.tipo === 'divisao') no = testar(r, no) ? no.esquerda : no.direita; return no; }\nconst r3 = (x) => Math.round(x * 1000) / 1000;\nconst div = (a, b) => (b === 0 ? 0 : a / b);   // convenção: divisão por zero => 0\n\nfunction metricas(reais, previstos) {\n  let vp = 0; let fp = 0; let fn = 0; let vn = 0;\n  reais.forEach((real, i) => {\n    const p = previstos[i];\n    if (real === POS && p === POS) vp++; else if (real !== POS && p === POS) fp++;\n    else if (real === POS && p !== POS) fn++; else vn++;\n  });\n  const precisao = div(vp, vp + fp); const recall = div(vp, vp + fn);\n  const precisaoSim = div(vn, vn + fn); const recallSim = div(vn, vn + fp);\n  return {\n    acuracia: r3(div(vp + vn, reais.length)),\n    precisao: r3(precisao), recall: r3(recall), f1: r3(div(2 * precisao * recall, precisao + recall)),\n    por_classe: {\n      nao: { precisao: r3(precisao), recall: r3(recall), f1: r3(div(2 * precisao * recall, precisao + recall)), suporte: vp + fn },\n      sim: { precisao: r3(precisaoSim), recall: r3(recallSim), f1: r3(div(2 * precisaoSim * recallSim, precisaoSim + recallSim)), suporte: vn + fp },\n    },\n    matriz_confusao: {\n      legenda: 'linhas = classe real; colunas = classe prevista; ordem [sim, nao]',\n      rotulos: [NEG, POS],\n      valores: [[vn, fp], [fn, vp]],\n      vn, fp, fn, vp,\n    },\n  };\n}\n\n// ----------------------------- avaliação -----------------------------\nconst cTreino = d.preparacao.treino.classes;\nconst classeBase = cTreino[POS] > cTreino[NEG] ? POS : NEG;\nconst reais = d.teste.map((r) => r[ALVO]);\nconst folhas = d.teste.map((r) => folhaDe(arvore, r));\nconst previstos = folhas.map((f) => f.classe);\nconst mArvore = metricas(reais, previstos);\nconst mBase = metricas(reais, d.teste.map(() => classeBase));\nconst accTreino = r3(div(d.treino.filter((r) => folhaDe(arvore, r).classe === r[ALVO]).length, d.treino.length));\nconst ganho = r3(mArvore.acuracia - mBase.acuracia);\n\nconst veredito = ganho > 0\n  ? `A árvore superou a linha de base: acurácia ${mArvore.acuracia} contra ${mBase.acuracia} (+${r3(ganho * 100)} p.p.). A linha de base (sempre \"${classeBase}\") não identifica nenhuma demanda em risco (recall da classe \"nao\" = ${mBase.recall}); a árvore identifica ${r3(mArvore.recall * 100)}% delas.`\n  : `A árvore NÃO superou a linha de base (acurácia ${mArvore.acuracia} contra ${mBase.acuracia}). Possíveis causas: base pequena, atributos pouco informativos ou ruído nos rótulos.`;\n\n// exemplos reais de acertos e erros (para o relatório)\nconst ex = d.teste.map((r, i) => ({\n  id_demanda: r.id_demanda, real: r[ALVO], previsto: previstos[i],\n  produto: r.produto, uf_origem: r.uf_origem, destino: r.destino, distancia_km: r.distancia_km, frete_ton: r.frete_ton,\n  frete_por_km: r.frete_por_km, saldo_ton: r.saldo_ton, balanca: r.balanca, estrada_chao_km: r.estrada_chao_km,\n  antecedencia_h: r.antecedencia_h, folha_n: folhas[i].n, folha_sim: folhas[i].contagem.sim, folha_nao: folhas[i].contagem.nao,\n}));\nconst exemplos = {\n  acertos: ex.filter((e) => e.real === e.previsto).slice(0, 4),\n  falsos_positivos: ex.filter((e) => e.real === NEG && e.previsto === POS).slice(0, 3),   // previu \"nao\", era \"sim\"\n  falsos_negativos: ex.filter((e) => e.real === POS && e.previsto === NEG).slice(0, 3),   // previu \"sim\", era \"nao\"\n};\n\nconst metricasFinais = {\n  conjunto_avaliado: `teste: ${d.teste.length} demandas históricas nunca vistas no treino`,\n  classe_positiva: 'nao (não atendida)',\n  arvore: mArvore,\n  linha_base: { regra: `prever sempre \"${classeBase}\" (classe mais frequente no treino)`, classe: classeBase, ...mBase },\n  acuracia_treino: accTreino,\n  diferenca_treino_teste: r3(accTreino - mArvore.acuracia),\n  ganho_sobre_linha_base: ganho,\n  superou_linha_base: ganho > 0,\n  veredito,\n  observacao: `Com ${d.teste.length} demandas de teste, cada erro altera a acurácia em ~${r3(100 / d.teste.length)} p.p.: os números são indicativos, não definitivos.`,\n  validacao_cruzada: d.modelo.validacao_cruzada,\n  experimento_vazamento: d.modelo.experimento_vazamento,\n  exemplos,\n};\n\nconst agora = new Date();\nconst versao = `cart-gini-${agora.toISOString().slice(0, 19).replace(/[-:T]/g, '')}`;\n\nreturn [{ json: {\n  registro_modelo: {\n    versao,\n    algoritmo: d.modelo.algoritmo,\n    parametros: d.modelo.parametros,\n    atributos: d.atributos,\n    arvore,\n    arvore_texto: d.modelo.arvore_texto,\n    importancias: d.modelo.importancias,\n    metricas: { ...metricasFinais, estrutura: { nos: d.modelo.nos, folhas: d.modelo.folhas, profundidade_real: d.modelo.profundidade_real } },\n    preparacao: d.preparacao,\n    n_treino: d.treino.length,\n    n_teste: d.teste.length,\n  },\n  resumo: {\n    versao,\n    registros: d.preparacao.registros_utilizados,\n    treino: d.treino.length, teste: d.teste.length,\n    profundidade: d.modelo.parametros.profundidade_maxima,\n    folhas: d.modelo.folhas,\n    acuracia: mArvore.acuracia, precisao_nao: mArvore.precisao, recall_nao: mArvore.recall, f1_nao: mArvore.f1,\n    acuracia_linha_base: mBase.acuracia,\n    acuracia_com_vazamento: d.modelo.experimento_vazamento.acuracia_teste,\n    veredito,\n  },\n} }];\n"
+      }
+    },
+    {
+      "id": "720d34f6-ed58-53fb-ad3f-aebf445ffeac",
+      "name": "Salvar Modelo Treinado",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1440,
+        1700
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT hub_salvar_modelo($1::jsonb) AS salvo;",
+        "options": {
+          "queryReplacement": "={{ [ JSON.stringify($json.registro_modelo) ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "xRB358Nv1hfm25RQ",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "id": "e58cfdca-0fd1-5a16-a645-a51df0d42512",
+      "name": "Responder Treinamento",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1680,
+        1700
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, ...$json.salvo, resumo: $('IA 3 - Avaliar Modelo e Linha de Base').first().json.resumo } }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "3dd5941a-55b7-5c15-a910-f30e1b128c58",
+      "name": "Responder Treinamento (sem base)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        960,
+        1880
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: false, erro: $json.erro } }}",
+        "options": {
+          "responseCode": 422
+        }
+      }
+    },
+    {
+      "id": "20bd1ce8-5a24-58a9-ac27-bddc84570657",
+      "name": "Casos de Teste",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        2060
+      ],
+      "parameters": {
+        "jsCode": "// =====================================================================\n// BLOCO 10 | CASOS DE TESTE (execução manual no editor do n8n)\n// Gera solicitações de TESTE (canal \"teste\", ambiente \"teste\") que percorrem o mesmo\n// pipeline das demandas reais. Ficam gravadas no banco, mas o dashboard IGNORA o\n// ambiente \"teste\" — nenhum número fictício aparece nos indicadores.\n// Os dados abaixo são EXEMPLOS FICTÍCIOS criados para teste (não são do dataset).\n// =====================================================================\n\nconst execucao = new Date().toISOString();\nconst casos = [\n  { cenario: 'geral_financeiro', tipo_informado: 'geral', solicitante: { nome: 'Teste Financeiro', email: 'teste.financeiro@example.com' },\n    assunto: 'Segunda via de boleto', texto: 'Preciso da segunda via do boleto com vencimento nesta semana.' },\n  { cenario: 'geral_cadastro', solicitante: { nome: 'Teste Cadastro', telefone: '42999990000' },\n    assunto: '', texto: 'Gostaria de atualizar os dados do meu cadastro e do contrato.' },\n  { cenario: 'logistica_campos', tipo_informado: 'logistica', solicitante: { nome: 'Teste Frete', email: 'teste.frete@example.com' },\n    campos_brutos: { produto: 'SOJA', uf_origem: 'PR', destino: 'Paranaguá', distancia_km: '560', frete_ton: '150', saldo_ton: '2500', balanca: '25m', estrada_chao_km: '0', antecedencia_h: '72' } },\n  { cenario: 'logistica_texto_livre', solicitante: { nome: 'Teste Texto Livre', email: 'teste.texto@example.com' },\n    texto: 'Preciso transportar milho do PR para Toledo, 400 km, frete de R$ 75 por tonelada, saldo de 1.800 toneladas, balança 20m, 15 km de estrada de chão, 24 horas de antecedência.' },\n  { cenario: 'logistica_incompleta', solicitante: { nome: 'Teste Incompleto', email: 'teste.incompleto@example.com' },\n    texto: 'Preciso transportar soja de MS para Paranaguá.' },\n  { cenario: 'logistica_invalida', tipo_informado: 'logistica', solicitante: { nome: 'Teste Inválido', email: 'email-invalido' },\n    campos_brutos: { produto: 'MILHO', uf_origem: 'XX', destino: 'Maringá', distancia_km: '-5', frete_ton: '90', saldo_ton: '1000', balanca: '40m', estrada_chao_km: '0', antecedencia_h: '48' } },\n];\n\nreturn casos.map((c, i) => ({ json: {\n  canal: 'teste',\n  ambiente: 'teste',\n  chave_evento: `teste:${execucao}:${i}`,\n  solicitante: c.solicitante,\n  tipo_informado: c.tipo_informado || null,\n  assunto: c.assunto || '',\n  texto: c.texto || '',\n  campos_brutos: c.campos_brutos || {},\n  dados_originais: { cenario: c.cenario, ...c },\n  resposta: { via: 'teste' },\n} }));\n"
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Telegram": {
+      "main": [
+        [
+          {
+            "node": "Carregar Conversa Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Carregar Conversa Telegram": {
+      "main": [
+        [
+          {
+            "node": "Interpretar Mensagem Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Interpretar Mensagem Telegram": {
+      "main": [
+        [
+          {
+            "node": "Ação do Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ação do Telegram": {
+      "main": [
+        [
+          {
+            "node": "Consolidar Entrada",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Salvar Conversa Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder Telegram (coleta)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gatilho E-mail (IMAP)": {
+      "main": [
+        [
+          {
+            "node": "Preparar E-mail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar E-mail": {
+      "main": [
+        [
+          {
+            "node": "E-mail tem PDF?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "E-mail tem PDF?": {
+      "main": [
+        [
+          {
+            "node": "Receber PDF",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Consolidar Entrada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Demanda Web": {
+      "main": [
+        [
+          {
+            "node": "Consolidar Entrada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Upload PDF": {
+      "main": [
+        [
+          {
+            "node": "Receber PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Receber PDF": {
+      "main": [
+        [
+          {
+            "node": "Extrair Texto do PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrair Texto do PDF": {
+      "main": [
+        [
+          {
+            "node": "Ler Texto do PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ler Texto do PDF": {
+      "main": [
+        [
+          {
+            "node": "Registrar Arquivo PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar Arquivo PDF": {
+      "main": [
+        [
+          {
+            "node": "PDF Legível?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PDF Legível?": {
+      "main": [
+        [
+          {
+            "node": "Consolidar Entrada",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder PDF Ilegível",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Upload CSV": {
+      "main": [
+        [
+          {
+            "node": "Ler CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ler CSV": {
+      "main": [
+        [
+          {
+            "node": "Registrar Arquivo CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar Arquivo CSV": {
+      "main": [
+        [
+          {
+            "node": "Finalidade do CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Finalidade do CSV": {
+      "main": [
+        [
+          {
+            "node": "Responder CSV com Erro",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Validar Base Histórica",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Expandir Linhas do CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Base Histórica": {
+      "main": [
+        [
+          {
+            "node": "Importar Base Histórica",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Importar Base Histórica": {
+      "main": [
+        [
+          {
+            "node": "Responder Importação Histórica",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Expandir Linhas do CSV": {
+      "main": [
+        [
+          {
+            "node": "Consolidar Entrada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consolidar Entrada": {
+      "main": [
+        [
+          {
+            "node": "Mapear Campos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mapear Campos": {
+      "main": [
+        [
+          {
+            "node": "Identificar Tipo de Demanda",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Identificar Tipo de Demanda": {
+      "main": [
+        [
+          {
+            "node": "Auditar e Validar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auditar e Validar": {
+      "main": [
+        [
+          {
+            "node": "Direcionar Demanda",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Direcionar Demanda": {
+      "main": [
+        [
+          {
+            "node": "Perguntar Próximo Dado (Telegram)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Normalizar Demanda Geral",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Normalizar Atributos Logísticos",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Unir Caminhos",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Perguntar Próximo Dado (Telegram)": {
+      "main": [
+        [
+          {
+            "node": "Salvar Conversa Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Salvar Conversa Telegram": {
+      "main": [
+        [
+          {
+            "node": "Responder Telegram (coleta)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar Demanda Geral": {
+      "main": [
+        [
+          {
+            "node": "Classificar Setor por Regras",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classificar Setor por Regras": {
+      "main": [
+        [
+          {
+            "node": "Unir Caminhos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar Atributos Logísticos": {
+      "main": [
+        [
+          {
+            "node": "Carregar Modelo Ativo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Carregar Modelo Ativo": {
+      "main": [
+        [
+          {
+            "node": "Prever Atendimento (Árvore CART)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prever Atendimento (Árvore CART)": {
+      "main": [
+        [
+          {
+            "node": "Unir Caminhos",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Unir Caminhos": {
+      "main": [
+        [
+          {
+            "node": "Montar Registro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar Registro": {
+      "main": [
+        [
+          {
+            "node": "Gravar Demanda (PostgreSQL)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gravar Demanda (PostgreSQL)": {
+      "main": [
+        [
+          {
+            "node": "Montar Resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar Resposta": {
+      "main": [
+        [
+          {
+            "node": "Responder por Canal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Responder por Canal": {
+      "main": [
+        [
+          {
+            "node": "Responder Web",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Encerrar Conversa Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Enviar Resposta por E-mail",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Atualizar Contadores do Lote",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fim dos Casos de Teste",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Encerrar Conversa Telegram": {
+      "main": [
+        [
+          {
+            "node": "Responder Telegram (resultado)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar Resposta por E-mail": {
+      "main": [
+        [
+          {
+            "node": "Verificar Envio do E-mail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verificar Envio do E-mail": {
+      "main": [
+        [
+          {
+            "node": "Registrar Envio do E-mail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Atualizar Contadores do Lote": {
+      "main": [
+        [
+          {
+            "node": "Resumo do Lote CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resumo do Lote CSV": {
+      "main": [
+        [
+          {
+            "node": "Responder Importação CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Consulta": {
+      "main": [
+        [
+          {
+            "node": "Tipo de Consulta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tipo de Consulta": {
+      "main": [
+        [
+          {
+            "node": "Consultar Dashboard",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Consultar Demandas",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Consultar Protocolo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Consultar Arquivos",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Consultar Modelo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Consulta Inválida",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar Dashboard": {
+      "main": [
+        [
+          {
+            "node": "Responder Consulta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar Demandas": {
+      "main": [
+        [
+          {
+            "node": "Responder Consulta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar Protocolo": {
+      "main": [
+        [
+          {
+            "node": "Responder Consulta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar Arquivos": {
+      "main": [
+        [
+          {
+            "node": "Responder Consulta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar Modelo": {
+      "main": [
+        [
+          {
+            "node": "Responder Consulta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Treinar IA": {
+      "main": [
+        [
+          {
+            "node": "Ler Base Histórica",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execução Manual (treino + testes)": {
+      "main": [
+        [
+          {
+            "node": "Ler Base Histórica",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Casos de Teste",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ler Base Histórica": {
+      "main": [
+        [
+          {
+            "node": "IA 1 - Preparar Dados Históricos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IA 1 - Preparar Dados Históricos": {
+      "main": [
+        [
+          {
+            "node": "Base Suficiente?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Base Suficiente?": {
+      "main": [
+        [
+          {
+            "node": "IA 2 - Treinar Árvore CART (Gini)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder Treinamento (sem base)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IA 2 - Treinar Árvore CART (Gini)": {
+      "main": [
+        [
+          {
+            "node": "IA 3 - Avaliar Modelo e Linha de Base",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IA 3 - Avaliar Modelo e Linha de Base": {
+      "main": [
+        [
+          {
+            "node": "Salvar Modelo Treinado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Salvar Modelo Treinado": {
+      "main": [
+        [
+          {
+            "node": "Responder Treinamento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Casos de Teste": {
+      "main": [
+        [
+          {
+            "node": "Consolidar Entrada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "d0a71885-58b2-5d89-a0d6-a1900be03d02",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "id": "RodomaxHubFinal01",
+  "tags": []
+}
