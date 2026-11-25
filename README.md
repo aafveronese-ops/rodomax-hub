@@ -58,7 +58,6 @@ Verificação rápida (com tudo rodando): `node tests/teste_integracao.js`
 - [docs/ARQUITETURA.md](docs/ARQUITETURA.md) — componentes, workflow bloco a bloco, banco, decisões
 - [docs/IA_E_AVALIACAO.md](docs/IA_E_AVALIACAO.md) — preparação, CART/Gini, métricas, linha de base, limitações
 - [docs/TESTES.md](docs/TESTES.md) — o que foi testado, como e com qual resultado
-- [docs/APRESENTACAO.md](docs/APRESENTACAO.md) — roteiro de 10 minutos
 - [docs/RELATORIO_APOIO.md](docs/RELATORIO_APOIO.md) — material de apoio ao relatório individual
 
 > Protótipo acadêmico: não é um sistema pronto para produção. As previsões são experimentais e a
